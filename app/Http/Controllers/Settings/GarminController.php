@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class GarminController extends Controller
 {
@@ -51,7 +52,13 @@ class GarminController extends Controller
     {
         $connection = $this->connectionFor($request);
 
-        $result = $action->handle($connection, $request->string('email')->value(), $request->string('password')->value());
+        try {
+            $result = $action->handle($connection, $request->string('email')->value(), $request->string('password')->value());
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['email' => 'Could not sign in to Garmin. Check your email and password and try again.']);
+        }
 
         if ($result->isMfaRequired()) {
             return back()
@@ -66,7 +73,15 @@ class GarminController extends Controller
     {
         $connection = $this->connectionFor($request);
 
-        $action->completeMfa($connection, $request->string('login_token')->value(), $request->string('code')->value());
+        try {
+            $action->completeMfa($connection, $request->string('login_token')->value(), $request->string('code')->value());
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()
+                ->withErrors(['code' => 'Could not verify that code. Request a new one and try again.'])
+                ->with('garmin_login_token', $request->string('login_token')->value());
+        }
 
         return back()->with('status', 'Garmin account connected.');
     }
