@@ -19,6 +19,12 @@ class PushPlannedWorkoutAction
             title: $this->title($workout),
             date: $workout->date->toDateString(),
             description: $workout->notes,
+            source: [
+                'app' => 'tempo',
+                'type' => 'planned-workout',
+                'id' => (string) $workout->id,
+                'url' => route('plan.index'),
+            ],
         );
 
         $workout->update([
