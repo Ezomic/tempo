@@ -35,9 +35,11 @@ jobs:
             php artisan migrate --force
             chmod 664 database/database.sqlite database/database.sqlite-wal database/database.sqlite-shm 2>/dev/null || true
             chgrp www-data database/database.sqlite database/database.sqlite-wal database/database.sqlite-shm 2>/dev/null || true
-            # setgid on database/ so WAL/SHM files the scheduler (deploy) recreates
-            # stay group-writable by PHP-FPM (www-data).
-            chmod g+s database
+            # The database/ directory itself must be group www-data and group-writable
+            # so SQLite (running as www-data) can create/manage WAL/SHM files; setgid
+            # keeps files the scheduler (deploy) recreates group-writable by PHP-FPM.
+            chgrp www-data database
+            chmod 2775 database
             php artisan optimize
             sudo /bin/systemctl reload php8.4-fpm
             php artisan up
