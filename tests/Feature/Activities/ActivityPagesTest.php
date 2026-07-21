@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Sport;
 use App\Models\Activity;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 function activityFor(User $user, array $overrides = []): Activity
@@ -54,4 +55,29 @@ it('forbids viewing another user activity', function () {
     $this->actingAs(User::factory()->create())
         ->get("/activities/{$activity->id}")
         ->assertForbidden();
+});
+
+it('exposes precomputed streams when a streams file exists', function () {
+    Storage::fake('local');
+    $user = User::factory()->create();
+    $path = "garmin/streams/{$user->id}/a1.json";
+    Storage::disk('local')->put($path, (string) json_encode([
+        't' => [0, 1], 'hr' => [140, 145], 'speed' => [3.0, 3.1], 'lat' => null, 'lng' => null,
+    ]));
+    $activity = activityFor($user, ['streams_path' => $path]);
+
+    $this->actingAs($user)
+        ->get("/activities/{$activity->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('activities/Show')
+            ->where('streams.hr', [140, 145]));
+});
+
+it('has null streams when none are stored', function () {
+    $user = User::factory()->create();
+    $activity = activityFor($user);
+
+    $this->actingAs($user)
+        ->get("/activities/{$activity->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('streams', null));
 });

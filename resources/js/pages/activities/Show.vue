@@ -22,12 +22,85 @@ interface Activity {
     hr_zone_seconds: Record<string, number> | null;
 }
 
-const props = defineProps<{ activity: Activity }>();
+interface Streams {
+    t: number[];
+    hr: (number | null)[];
+    speed: (number | null)[];
+    lat: number[] | null;
+    lng: number[] | null;
+}
+
+const props = defineProps<{ activity: Activity; streams: Streams | null }>();
 
 defineOptions({
     layout: {
         breadcrumbs: [{ title: 'Activities', href: activitiesIndex() }],
     },
+});
+
+function linePoints(xs: number[], ys: (number | null)[]): string {
+    const pairs: [number, number][] = [];
+    xs.forEach((x, i) => {
+        const y = ys[i];
+
+        if (y !== null) {
+            pairs.push([x, y]);
+        }
+    });
+
+    if (pairs.length < 2) {
+        return '';
+    }
+
+    const xsF = pairs.map((p) => p[0]);
+    const ysF = pairs.map((p) => p[1]);
+    const minX = Math.min(...xsF);
+    const minY = Math.min(...ysF);
+    const spanX = Math.max(...xsF) - minX || 1;
+    const spanY = Math.max(...ysF) - minY || 1;
+
+    return pairs
+        .map(
+            ([x, y]) =>
+                `${(((x - minX) / spanX) * 100).toFixed(2)},${(100 - ((y - minY) / spanY) * 100).toFixed(2)}`,
+        )
+        .join(' ');
+}
+
+const hrPoints = computed(() =>
+    props.streams ? linePoints(props.streams.t, props.streams.hr) : '',
+);
+
+const speedPoints = computed(() =>
+    props.streams ? linePoints(props.streams.t, props.streams.speed) : '',
+);
+
+const routePoints = computed(() => {
+    const lat = props.streams?.lat;
+    const lng = props.streams?.lng;
+
+    if (!lat || !lng || lat.length < 2) {
+        return '';
+    }
+
+    const minLat = Math.min(...lat);
+    const minLng = Math.min(...lng);
+    const midLat = (minLat + Math.max(...lat)) / 2;
+    const lngScale = Math.cos((midLat * Math.PI) / 180);
+    const span =
+        Math.max(
+            (Math.max(...lng) - minLng) * lngScale,
+            Math.max(...lat) - minLat,
+        ) || 1;
+
+    return lat
+        .map((v, i) => {
+            const x = (((lng[i] - minLng) * lngScale) / span) * 100;
+            const y = 100 - ((v - minLat) / span) * 100;
+
+            return `${x.toFixed(2)},${y.toFixed(2)}`;
+        })
+        .join(' ');
 });
 
 const zoneColors: Record<number, string> = {
@@ -158,5 +231,71 @@ const stats = computed(() => [
                 </div>
             </CardContent>
         </Card>
+
+        <div v-if="streams" class="grid gap-4 md:grid-cols-2">
+            <Card v-if="hrPoints">
+                <CardHeader>
+                    <CardTitle>Heart rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <svg
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        class="h-32 w-full text-red-500"
+                    >
+                        <polyline
+                            :points="hrPoints"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            vector-effect="non-scaling-stroke"
+                        />
+                    </svg>
+                </CardContent>
+            </Card>
+
+            <Card v-if="speedPoints">
+                <CardHeader>
+                    <CardTitle>Speed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <svg
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        class="h-32 w-full text-sky-500"
+                    >
+                        <polyline
+                            :points="speedPoints"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            vector-effect="non-scaling-stroke"
+                        />
+                    </svg>
+                </CardContent>
+            </Card>
+
+            <Card v-if="routePoints" class="md:col-span-2">
+                <CardHeader>
+                    <CardTitle>Route</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <svg
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="xMidYMid meet"
+                        class="h-64 w-full text-emerald-500"
+                    >
+                        <polyline
+                            :points="routePoints"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            vector-effect="non-scaling-stroke"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </CardContent>
+            </Card>
+        </div>
     </div>
 </template>

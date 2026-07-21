@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,6 +51,21 @@ class ActivityController extends Controller
                 'trimp' => $activity->trimp,
                 'hr_zone_seconds' => $activity->hr_zone_seconds,
             ],
+            'streams' => $this->streams($activity),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function streams(Activity $activity): ?array
+    {
+        if ($activity->streams_path === null || ! Storage::disk('local')->exists($activity->streams_path)) {
+            return null;
+        }
+
+        $decoded = json_decode((string) Storage::disk('local')->get($activity->streams_path), true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 }

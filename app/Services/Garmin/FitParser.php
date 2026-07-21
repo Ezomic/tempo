@@ -21,21 +21,73 @@ class FitParser
 
     private function extract(phpFITFileAnalysis $fit): ParsedActivity
     {
-        $hr = $fit->data_mesgs['record']['heart_rate'] ?? [];
+        $record = is_array($fit->data_mesgs['record'] ?? null) ? $fit->data_mesgs['record'] : [];
 
-        if (! is_array($hr)) {
-            $hr = [];
+        return new ParsedActivity(
+            hrSamples: $this->intStream($record['heart_rate'] ?? []),
+            speedSamples: $this->floatStream($record['speed'] ?? []),
+            positions: $this->positionStream(
+                $record['position_lat'] ?? [],
+                $record['position_long'] ?? [],
+            ),
+        );
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function intStream(mixed $raw): array
+    {
+        $out = [];
+        foreach ($this->asArray($raw) as $timestamp => $value) {
+            if (is_numeric($timestamp) && is_numeric($value) && (int) $value > 0) {
+                $out[(int) $timestamp] = (int) $value;
+            }
         }
+        ksort($out);
 
-        $samples = [];
-        foreach ($hr as $timestamp => $bpm) {
-            if (is_numeric($timestamp) && is_numeric($bpm) && (int) $bpm > 0) {
-                $samples[(int) $timestamp] = (int) $bpm;
+        return $out;
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function floatStream(mixed $raw): array
+    {
+        $out = [];
+        foreach ($this->asArray($raw) as $timestamp => $value) {
+            if (is_numeric($timestamp) && is_numeric($value)) {
+                $out[(int) $timestamp] = (float) $value;
+            }
+        }
+        ksort($out);
+
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{0: float, 1: float}>
+     */
+    private function positionStream(mixed $lat, mixed $lng): array
+    {
+        $lats = $this->floatStream($lat);
+        $lngs = $this->floatStream($lng);
+
+        $out = [];
+        foreach ($lats as $timestamp => $latitude) {
+            if (isset($lngs[$timestamp])) {
+                $out[$timestamp] = [$latitude, $lngs[$timestamp]];
             }
         }
 
-        ksort($samples);
+        return $out;
+    }
 
-        return new ParsedActivity($samples);
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function asArray(mixed $raw): array
+    {
+        return is_array($raw) ? $raw : [];
     }
 }

@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property float|null $trimp
  * @property array<int, int>|null $hr_zone_seconds
  * @property string|null $fit_path
+ * @property string|null $streams_path
  * @property array<string, mixed>|null $raw_summary
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -49,6 +50,7 @@ use Illuminate\Support\Carbon;
     'trimp',
     'hr_zone_seconds',
     'fit_path',
+    'streams_path',
     'raw_summary',
 ])]
 class Activity extends Model
