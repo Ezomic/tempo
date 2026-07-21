@@ -13,9 +13,12 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('settings/garmin', [GarminController::class, 'edit'])->name('garmin.edit');
-    Route::post('settings/garmin/connect', [GarminController::class, 'connect'])->name('garmin.connect');
-    Route::post('settings/garmin/mfa', [GarminController::class, 'mfa'])->name('garmin.mfa');
-    Route::post('settings/garmin/sync', [GarminController::class, 'sync'])->name('garmin.sync');
+    Route::post('settings/garmin/connect', [GarminController::class, 'connect'])
+        ->middleware('throttle:5,1')->name('garmin.connect');
+    Route::post('settings/garmin/mfa', [GarminController::class, 'mfa'])
+        ->middleware('throttle:5,1')->name('garmin.mfa');
+    Route::post('settings/garmin/sync', [GarminController::class, 'sync'])
+        ->middleware('throttle:10,1')->name('garmin.sync');
     Route::patch('settings/garmin/hr-zones', [GarminController::class, 'updateSettings'])->name('garmin.hr-zones.update');
     Route::delete('settings/garmin', [GarminController::class, 'disconnect'])->name('garmin.disconnect');
 });

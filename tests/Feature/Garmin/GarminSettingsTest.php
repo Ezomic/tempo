@@ -125,3 +125,62 @@ it('disconnects a Garmin account', function () {
     expect(HrZoneSettings::query()->count())->toBe(0)
         ->and($user->garminConnection()->exists())->toBeFalse();
 });
+
+it('surfaces a generic error instead of a 500 when Garmin sign-in fails', function () {
+    $throwing = new class implements GarminClient
+    {
+        public function login(GarminConnection $connection, string $email, string $password): LoginResult
+        {
+            throw new RuntimeException('garth: 401 unauthorized for https://sso.garmin.com/...');
+        }
+
+        public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
+        {
+            return new LoginResult('ok');
+        }
+
+        public function status(GarminConnection $connection): ConnectionStatus
+        {
+            return new ConnectionStatus(false);
+        }
+
+        public function activities(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $end): array
+        {
+            return [];
+        }
+
+        public function downloadFit(GarminConnection $connection, string $activityId): string
+        {
+            return '';
+        }
+
+        public function wellness(GarminConnection $connection, CarbonImmutable $date): WellnessSnapshot
+        {
+            return WellnessSnapshot::fromSidecar(['date' => $date->toDateString()]);
+        }
+    };
+    $this->app->instance(GarminClient::class, $throwing);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/settings/garmin/connect', ['email' => 'a@b.test', 'password' => 'wrong'])
+        ->assertRedirect()
+        ->assertSessionHasErrors('email');
+
+    // The raw Garmin/garth error must not reach the user.
+    expect(session('errors')->first('email'))->not->toContain('garth')
+        ->and($user->garminConnection?->status)->not->toBe(GarminConnection::STATUS_CONNECTED);
+});
+
+it('rate-limits repeated connect attempts', function () {
+    $this->app->instance(GarminClient::class, stubClient(new LoginResult('ok', displayName: 'Test Athlete')));
+    $user = User::factory()->create();
+
+    for ($i = 0; $i < 5; $i++) {
+        $this->actingAs($user)->post('/settings/garmin/connect', ['email' => 'a@b.test', 'password' => 'secret']);
+    }
+
+    $this->actingAs($user)
+        ->post('/settings/garmin/connect', ['email' => 'a@b.test', 'password' => 'secret'])
+        ->assertStatus(429);
+});
