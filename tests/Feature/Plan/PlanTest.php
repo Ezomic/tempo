@@ -65,6 +65,9 @@ it('pushes a workout to chronos and records the event', function () {
         && $request['title'] === 'Run: Easy 40 (40 min)'
         && $request['all_day'] === true
         && $request['starts_at'] === '2026-07-25'
+        && $request['source']['app'] === 'tempo'
+        && $request['source']['type'] === 'planned-workout'
+        && $request['source']['id'] === (string) $workout->id
         && $request->hasHeader('Authorization', 'Bearer tok'));
 });
 

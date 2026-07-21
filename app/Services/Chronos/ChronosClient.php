@@ -23,25 +23,32 @@ final readonly class ChronosClient
     /**
      * Create an all-day event in chronos for a planned workout.
      *
+     * @param  array{app: string, type: string, id: string, url: string}|null  $source
      * @return array{id: string, url: string|null}
      */
-    public function createAllDayEvent(string $title, string $date, ?string $description): array
+    public function createAllDayEvent(string $title, string $date, ?string $description, ?array $source = null): array
     {
         if (! $this->isConfigured()) {
             throw new RuntimeException('Chronos integration is not configured.');
+        }
+
+        $payload = [
+            'title' => $title,
+            'all_day' => true,
+            'starts_at' => $date,
+            'ends_at' => $date,
+            'description' => $description,
+        ];
+
+        if ($source !== null) {
+            $payload['source'] = $source;
         }
 
         $response = Http::baseUrl($this->baseUrl)
             ->withToken($this->token)
             ->acceptJson()
             ->timeout(15)
-            ->post('/events', [
-                'title' => $title,
-                'all_day' => true,
-                'starts_at' => $date,
-                'ends_at' => $date,
-                'description' => $description,
-            ])
+            ->post('/events', $payload)
             ->throw();
 
         $json = $response->json();
