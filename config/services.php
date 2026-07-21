@@ -40,4 +40,9 @@ return [
         'secret' => env('GARMIN_SIDECAR_SECRET', ''),
     ],
 
+    'chronos' => [
+        'url' => env('CHRONOS_API_URL'),
+        'token' => env('CHRONOS_API_TOKEN'),
+    ],
+
 ];

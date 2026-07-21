@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Chronos\ChronosClient;
 use App\Services\Garmin\GarminClient;
 use App\Services\Garmin\SidecarGarminClient;
 use Carbon\CarbonImmutable;
@@ -20,6 +21,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(GarminClient::class, fn (): SidecarGarminClient => new SidecarGarminClient(
             baseUrl: (string) config('services.garmin_sidecar.url'),
             secret: (string) config('services.garmin_sidecar.secret'),
+        ));
+
+        $this->app->bind(ChronosClient::class, fn (): ChronosClient => new ChronosClient(
+            baseUrl: config('services.chronos.url'),
+            token: config('services.chronos.token'),
         ));
     }
 
