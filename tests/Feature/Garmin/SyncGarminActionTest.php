@@ -113,9 +113,11 @@ it('stores activities with computed TRIMP and archives the FIT file', function (
         ->and($activity->distance_m)->toBe(10000.0)
         ->and($activity->trimp)->toBeGreaterThan(1.7)->toBeLessThan(1.9)
         ->and($activity->hr_zone_seconds[3])->toBe(60)
-        ->and($activity->fit_path)->not->toBeNull();
+        ->and($activity->fit_path)->not->toBeNull()
+        ->and($activity->streams_path)->not->toBeNull();
 
     Storage::disk('local')->assertExists($activity->fit_path);
+    Storage::disk('local')->assertExists($activity->streams_path);
 });
 
 it('stores wellness days from the sidecar snapshot', function () {

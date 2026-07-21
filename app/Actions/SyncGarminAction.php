@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\DataObjects\ActivitySummary;
+use App\DataObjects\ParsedActivity;
 use App\Models\Activity;
 use App\Models\GarminConnection;
 use App\Models\HrZoneSettings;
 use App\Models\WellnessDay;
 use App\Services\Garmin\FitParser;
 use App\Services\Garmin\GarminClient;
+use App\Services\Garmin\StreamBuilder;
 use App\Services\Garmin\TrimpCalculator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Storage;
@@ -27,6 +29,7 @@ class SyncGarminAction
         private readonly GarminClient $client,
         private readonly FitParser $fitParser,
         private readonly TrimpCalculator $trimp,
+        private readonly StreamBuilder $streamBuilder,
     ) {}
 
     public function handle(GarminConnection $connection): void
@@ -103,6 +106,11 @@ class SyncGarminAction
                 $attributes['trimp'] = $this->trimp->trimp($parsed->hrSamples, $settings);
                 $attributes['hr_zone_seconds'] = $this->trimp->zoneSeconds($parsed->hrSamples, $settings);
             }
+
+            $streamsPath = $this->archiveStreams($connection, $summary->externalId, $parsed);
+            if ($streamsPath !== null) {
+                $attributes['streams_path'] = $streamsPath;
+            }
         }
 
         Activity::query()->updateOrCreate(
@@ -130,6 +138,18 @@ class SyncGarminAction
         Storage::disk('local')->put($path, $bytes);
 
         return ['bytes' => $bytes, 'path' => $path];
+    }
+
+    private function archiveStreams(GarminConnection $connection, string $externalId, ParsedActivity $parsed): ?string
+    {
+        if ($parsed->hrSamples === [] && $parsed->speedSamples === [] && $parsed->positions === []) {
+            return null;
+        }
+
+        $path = "garmin/streams/{$connection->user_id}/{$externalId}.json";
+        Storage::disk('local')->put($path, (string) json_encode($this->streamBuilder->build($parsed)));
+
+        return $path;
     }
 
     private function syncWellness(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $today): void

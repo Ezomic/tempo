@@ -7,12 +7,14 @@ namespace App\DataObjects;
 final readonly class ParsedActivity
 {
     /**
-     * Heart-rate samples keyed by unix timestamp (as recorded in the FIT file).
-     *
-     * @param  array<int, int>  $hrSamples
+     * @param  array<int, int>  $hrSamples  bpm keyed by unix timestamp
+     * @param  array<int, float>  $speedSamples  m/s keyed by unix timestamp
+     * @param  array<int, array{0: float, 1: float}>  $positions  [lat, lng] keyed by unix timestamp
      */
     public function __construct(
         public array $hrSamples,
+        public array $speedSamples = [],
+        public array $positions = [],
     ) {}
 
     public function hasHeartRate(): bool
