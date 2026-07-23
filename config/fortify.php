@@ -161,17 +161,13 @@ return [
     */
 
     'features' => [
-        Features::registration(),
-        Features::resetPasswords(),
-        Features::emailVerification(),
+        // Passwordless: no registration/password-reset/email-verification.
+        // Accounts are provisioned directly; sign-in is via email code or passkey.
         Features::twoFactorAuthentication([
             'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0
+            'confirmPassword' => false,
         ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
+        Features::passkeys(),
     ],
 
 ];
