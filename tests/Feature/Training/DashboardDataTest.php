@@ -48,5 +48,10 @@ it('exposes load, weekly and readiness props once data exists', function () {
             ->has('weekly', 8)
             ->has('load.acute')
             ->has('load.ratio')
-            ->where('readiness.hrv_status', 'balanced'));
+            ->has('recentActivities', 1)
+            ->where('todayPlan', null)
+            ->where('readiness.hrv_status', 'balanced')
+            // Balanced HRV + healthy battery, but a single activity spikes the
+            // acute:chronic ratio, so the score is docked from 100.
+            ->where('readiness.score', 75));
 });
