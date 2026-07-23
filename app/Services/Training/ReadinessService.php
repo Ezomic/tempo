@@ -31,12 +31,43 @@ class ReadinessService
         }
 
         return [
+            'score' => $this->score($day, $acwr),
             'verdict' => $this->verdict($day, $acwr),
             'hrv_status' => $day->hrv_status?->value,
             'body_battery' => $day->body_battery_high,
             'resting_hr' => $day->resting_hr,
             'date' => $day->date->toDateString(),
         ];
+    }
+
+    private function score(WellnessDay $day, ?float $acwr): int
+    {
+        $score = 100;
+
+        $score -= match ($day->hrv_status) {
+            HrvStatus::Poor => 45,
+            HrvStatus::Low => 30,
+            HrvStatus::Unbalanced => 18,
+            default => 0,
+        };
+
+        if ($day->body_battery_high !== null) {
+            $score -= match (true) {
+                $day->body_battery_high < 25 => 22,
+                $day->body_battery_high < 50 => 10,
+                default => 0,
+            };
+        }
+
+        $score -= match (true) {
+            $acwr === null => 0,
+            $acwr > 1.5 => 25,
+            $acwr > 1.3 => 12,
+            $acwr < 0.8 => 4,
+            default => 0,
+        };
+
+        return max(0, min(100, $score));
     }
 
     private function verdict(WellnessDay $day, ?float $acwr): string

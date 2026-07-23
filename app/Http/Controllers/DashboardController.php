@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
+use App\Models\PlannedWorkout;
 use App\Services\Training\ReadinessService;
 use App\Services\Training\TrainingLoadService;
 use Carbon\CarbonImmutable;
@@ -31,6 +33,39 @@ class DashboardController extends Controller
             'readiness' => $this->readiness->snapshot($user, $load['ratio']),
             'load' => $load,
             'weekly' => $this->load->weeklyBySport($user, $today, 8),
+            'recentActivities' => $user->activities()
+                ->latest('started_at')
+                ->limit(5)
+                ->get()
+                ->map(fn (Activity $activity): array => [
+                    'id' => $activity->id,
+                    'sport' => $activity->sport->value,
+                    'name' => is_string($activity->raw_summary['activityName'] ?? null)
+                        ? $activity->raw_summary['activityName']
+                        : ucfirst($activity->sport->value),
+                    'distance_m' => $activity->distance_m,
+                    'duration_s' => $activity->duration_s,
+                    'trimp' => $activity->trimp,
+                ]),
+            'todayPlan' => $this->todayPlan($user->plannedWorkouts()->whereDate('date', $today->toDateString())->first()),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function todayPlan(?PlannedWorkout $workout): ?array
+    {
+        if ($workout === null) {
+            return null;
+        }
+
+        return [
+            'sport' => $workout->sport->value,
+            'title' => $workout->title,
+            'duration_min' => $workout->duration_min,
+            'notes' => $workout->notes,
+            'pushed' => $workout->isPushed(),
+        ];
     }
 }
