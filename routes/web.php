@@ -19,4 +19,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('plan/{plannedWorkout}', [PlanController::class, 'destroy'])->name('plan.destroy');
 });
 
+require __DIR__.'/auth.php';
 require __DIR__.'/settings.php';
