@@ -61,14 +61,14 @@ class ProfileUpdateTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account()
+    public function test_user_can_delete_their_account_by_confirming_email()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['email' => 'athlete@example.com']);
 
         $response = $this
             ->actingAs($user)
             ->delete(route('profile.destroy'), [
-                'password' => 'password',
+                'email' => 'ATHLETE@example.com',
             ]);
 
         $response
@@ -79,19 +79,19 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->fresh());
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account()
+    public function test_matching_email_must_be_provided_to_delete_account()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['email' => 'athlete@example.com']);
 
         $response = $this
             ->actingAs($user)
             ->from(route('profile.edit'))
             ->delete(route('profile.destroy'), [
-                'password' => 'wrong-password',
+                'email' => 'someone-else@example.com',
             ]);
 
         $response
-            ->assertSessionHasErrors('password')
+            ->assertSessionHasErrors('email')
             ->assertRedirect(route('profile.edit'));
 
         $this->assertNotNull($user->fresh());
