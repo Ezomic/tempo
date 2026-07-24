@@ -42,4 +42,7 @@ jobs:
             chmod 2775 database
             php artisan optimize
             sudo /bin/systemctl reload php8.4-fpm
+            # Sync + restart the Garmin sidecar from sidecar/. A root-owned wrapper
+            # does the privileged work; deploy has NOPASSWD sudo for only that script.
+            sudo /usr/local/bin/deploy-tempo-sidecar.sh
             php artisan up
