@@ -11,7 +11,12 @@ from pathlib import Path
 from typing import Any, Callable
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
-from garminconnect import Garmin
+from garminconnect import (
+    Garmin,
+    GarminConnectAuthenticationError,
+    GarminConnectConnectionError,
+    GarminConnectTooManyRequestsError,
+)
 from pydantic import BaseModel
 
 TOKENS_ROOT = Path(__file__).parent / "tokens"
@@ -108,6 +113,18 @@ def guarded(fn: Callable[[], Any]) -> Any:
         return None
 
 
+def garmin_http_error(exc: Exception) -> HTTPException:
+    # Map Garmin sign-in failures to distinct status codes so Laravel can show a
+    # specific message instead of a generic "check your credentials".
+    if isinstance(exc, GarminConnectTooManyRequestsError):
+        return HTTPException(status_code=429, detail="rate_limited")
+    if isinstance(exc, GarminConnectAuthenticationError):
+        return HTTPException(status_code=401, detail="auth_failed")
+    if isinstance(exc, GarminConnectConnectionError):
+        return HTTPException(status_code=502, detail="garmin_unreachable")
+    return HTTPException(status_code=500, detail="error")
+
+
 class LoginBody(BaseModel):
     connection_id: str
     email: str
@@ -123,7 +140,10 @@ class MfaBody(BaseModel):
 @app.post("/login")
 def login(body: LoginBody, _: None = Depends(require_secret)) -> dict[str, Any]:
     client = Garmin(email=body.email, password=body.password, return_on_mfa=True)
-    result1, result2 = client.login()
+    try:
+        result1, result2 = client.login()
+    except Exception as exc:
+        raise garmin_http_error(exc) from exc
 
     if result1 == "needs_mfa":
         prune_pending()
@@ -144,7 +164,10 @@ def login_mfa(body: MfaBody, _: None = Depends(require_secret)) -> dict[str, Any
         raise HTTPException(status_code=410, detail="Login token expired")
 
     client: Garmin = pending["client"]
-    client.resume_login(pending["state"], body.code)
+    try:
+        client.resume_login(pending["state"], body.code)
+    except Exception as exc:
+        raise garmin_http_error(exc) from exc
     path = token_dir(body.connection_id)
     dump_tokens(client, path)
     return {"status": "ok", "display_name": safe_name(client)}

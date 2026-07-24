@@ -8,9 +8,12 @@ use App\DataObjects\ActivitySummary;
 use App\DataObjects\ConnectionStatus;
 use App\DataObjects\LoginResult;
 use App\DataObjects\WellnessSnapshot;
+use App\Exceptions\GarminConnectException;
 use App\Models\GarminConnection;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 final readonly class SidecarGarminClient implements GarminClient
@@ -23,22 +26,22 @@ final readonly class SidecarGarminClient implements GarminClient
 
     public function login(GarminConnection $connection, string $email, string $password): LoginResult
     {
-        $response = $this->request()->post('/login', [
+        $response = $this->authRequest(fn (): Response => $this->request()->post('/login', [
             'connection_id' => (string) $connection->id,
             'email' => $email,
             'password' => $password,
-        ])->throw();
+        ]));
 
         return LoginResult::fromSidecar($response->json());
     }
 
     public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
     {
-        $response = $this->request()->post('/login/mfa', [
+        $response = $this->authRequest(fn (): Response => $this->request()->post('/login/mfa', [
             'connection_id' => (string) $connection->id,
             'login_token' => $loginToken,
             'code' => $code,
-        ])->throw();
+        ]));
 
         return LoginResult::fromSidecar($response->json());
     }
@@ -90,5 +93,26 @@ final readonly class SidecarGarminClient implements GarminClient
         return Http::baseUrl($this->baseUrl)
             ->withHeaders(['X-Tempo-Secret' => $this->secret])
             ->timeout($this->timeout);
+    }
+
+    /**
+     * Run a sign-in request, translating transport and sidecar failures into a
+     * typed GarminConnectException so callers can show a specific message.
+     *
+     * @param  callable(): Response  $request
+     */
+    private function authRequest(callable $request): Response
+    {
+        try {
+            $response = $request();
+        } catch (ConnectionException $e) {
+            throw GarminConnectException::unreachable($e);
+        }
+
+        if ($response->failed()) {
+            throw GarminConnectException::fromResponse($response);
+        }
+
+        return $response;
     }
 }

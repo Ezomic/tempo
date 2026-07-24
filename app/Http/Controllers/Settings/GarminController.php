@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Settings;
 
 use App\Actions\ConnectGarminAction;
+use App\Exceptions\GarminConnectException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\CompleteGarminMfaRequest;
 use App\Http\Requests\Settings\ConnectGarminRequest;
@@ -54,10 +55,14 @@ class GarminController extends Controller
 
         try {
             $result = $action->handle($connection, $request->string('email')->value(), $request->string('password')->value());
+        } catch (GarminConnectException $e) {
+            report($e);
+
+            return back()->withErrors(['email' => $e->userMessage()]);
         } catch (Throwable $e) {
             report($e);
 
-            return back()->withErrors(['email' => 'Could not sign in to Garmin. Check your email and password and try again.']);
+            return back()->withErrors(['email' => 'Could not sign in to Garmin. Please try again shortly.']);
         }
 
         if ($result->isMfaRequired()) {
@@ -75,6 +80,12 @@ class GarminController extends Controller
 
         try {
             $action->completeMfa($connection, $request->string('login_token')->value(), $request->string('code')->value());
+        } catch (GarminConnectException $e) {
+            report($e);
+
+            return back()
+                ->withErrors(['code' => $e->userMessage()])
+                ->with('garmin_login_token', $request->string('login_token')->value());
         } catch (Throwable $e) {
             report($e);
 
