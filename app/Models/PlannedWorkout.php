@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\Sport;
+use App\Enums\WorkoutType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -13,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property Carbon $date
  * @property Sport $sport
+ * @property WorkoutType|null $workout_type
  * @property string $title
  * @property string|null $notes
  * @property int|null $duration_min
@@ -26,6 +29,7 @@ use Illuminate\Support\Carbon;
     'user_id',
     'date',
     'sport',
+    'workout_type',
     'title',
     'notes',
     'duration_min',
@@ -40,12 +44,25 @@ class PlannedWorkout extends Model
         return $this->pushed_at !== null;
     }
 
+    public function computedDurationMin(): int
+    {
+        return (int) $this->steps->sum(fn (PlannedWorkoutStep $step): int => $step->totalMinutes());
+    }
+
     /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return HasMany<PlannedWorkoutStep, $this>
+     */
+    public function steps(): HasMany
+    {
+        return $this->hasMany(PlannedWorkoutStep::class)->orderBy('position');
     }
 
     /**
@@ -56,6 +73,7 @@ class PlannedWorkout extends Model
         return [
             'date' => 'date',
             'sport' => Sport::class,
+            'workout_type' => WorkoutType::class,
             'pushed_at' => 'datetime',
         ];
     }

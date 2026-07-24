@@ -101,3 +101,76 @@ it('deletes a planned workout', function () {
 
     expect(PlannedWorkout::query()->count())->toBe(0);
 });
+
+it('stores a workout with structured steps and derives the duration', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/plan', [
+            'date' => '2026-07-28',
+            'sport' => 'run',
+            'workout_type' => 'intervals',
+            'title' => 'Threshold reps',
+            'steps' => [
+                ['repeat' => 1, 'intensity' => 'easy', 'duration_min' => 15, 'label' => 'Warm up'],
+                ['repeat' => 5, 'intensity' => 'hard', 'duration_min' => 3, 'recovery_min' => 2, 'recovery_intensity' => 'easy'],
+                ['repeat' => 1, 'intensity' => 'easy', 'duration_min' => 10, 'label' => 'Cool down'],
+            ],
+        ])
+        ->assertRedirect();
+
+    $workout = $user->plannedWorkouts()->with('steps')->first();
+
+    expect($workout->steps)->toHaveCount(3)
+        ->and($workout->workout_type->value)->toBe('intervals')
+        // 15 + 5*(3+2) + 10
+        ->and($workout->duration_min)->toBe(50)
+        ->and($workout->steps[1]->intensity->value)->toBe('hard')
+        ->and($workout->steps[1]->position)->toBe(1);
+});
+
+it('exposes step + intensity metadata and reference options on the plan page', function () {
+    $user = User::factory()->create();
+    $workout = plannedFor($user, ['duration_min' => null]);
+    $workout->steps()->create([
+        'position' => 0,
+        'repeat' => 5,
+        'intensity' => 'hard',
+        'duration_min' => 3,
+        'recovery_min' => 2,
+    ]);
+
+    $this->actingAs($user)
+        ->get('/plan')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Plan')
+            ->has('intensityOptions', 5)
+            ->has('workoutTypeOptions')
+            ->where('workouts.0.steps.0.intensity.zone', 4)
+            ->where('workouts.0.steps.0.intensity.hr_percent', '80-90%')
+            ->where('workouts.0.steps.0.repeat', 5)
+            ->where('workouts.0.description', fn (string $d) => str_contains($d, 'Hard') && str_contains($d, '80-90%')));
+});
+
+it('pushes a step-based description to chronos', function () {
+    configureChronos();
+    Http::fake(['chronos.test/*' => Http::response(['id' => 'evt_2', 'url' => 'https://chronos.test/cal'], 201)]);
+
+    $user = User::factory()->create();
+    $workout = plannedFor($user, ['duration_min' => null]);
+    $workout->steps()->create([
+        'position' => 0,
+        'repeat' => 5,
+        'intensity' => 'hard',
+        'duration_min' => 3,
+        'recovery_min' => 2,
+        'recovery_intensity' => 'easy',
+    ]);
+
+    $this->actingAs($user)->post("/plan/{$workout->id}/push")->assertRedirect();
+
+    Http::assertSent(fn ($request) => $request->url() === 'https://chronos.test/api/events'
+        && str_contains($request['description'], '5 x 3 min Hard (Z4, ~80-90% max HR)')
+        && str_contains($request['description'], 'with 2 min Easy between'));
+});

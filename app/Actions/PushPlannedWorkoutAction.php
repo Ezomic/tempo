@@ -6,11 +6,13 @@ namespace App\Actions;
 
 use App\Models\PlannedWorkout;
 use App\Services\Chronos\ChronosClient;
+use App\Services\Training\WorkoutDescriber;
 
 class PushPlannedWorkoutAction
 {
     public function __construct(
         private readonly ChronosClient $chronos,
+        private readonly WorkoutDescriber $describer,
     ) {}
 
     public function handle(PlannedWorkout $workout): void
@@ -18,7 +20,7 @@ class PushPlannedWorkoutAction
         $event = $this->chronos->createAllDayEvent(
             title: $this->title($workout),
             date: $workout->date->toDateString(),
-            description: $workout->notes,
+            description: $this->describer->describe($workout),
             source: [
                 'app' => 'tempo',
                 'type' => 'planned-workout',
