@@ -193,6 +193,7 @@ function stepLine(step: WorkoutStep): string {
                                 id="date"
                                 v-model="form.date"
                                 type="date"
+                                lang="nl-NL"
                                 required
                             />
                             <InputError :message="form.errors.date" />
