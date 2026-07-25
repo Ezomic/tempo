@@ -559,6 +559,7 @@ function stepLine(step: WorkoutStep): string {
                                                 workout.workout_type?.value ??
                                                 null
                                             "
+                                            :sport="workout.sport"
                                             trigger-label="New route"
                                         />
                                     </div>
@@ -569,6 +570,7 @@ function stepLine(step: WorkoutStep): string {
                                     :workout-type="
                                         workout.workout_type?.value ?? null
                                     "
+                                    :sport="workout.sport"
                                     trigger-label="Suggest a route"
                                 />
                             </div>

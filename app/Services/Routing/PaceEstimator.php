@@ -9,11 +9,14 @@ use App\Models\User;
 
 class PaceEstimator
 {
-    /** Fallback speeds (m/s) when the user has no history for the sport. */
+    /**
+     * Fallback speeds (m/s) when the user has no history for the sport. Tuned
+     * for a beginner so auto-sized routes stay short until real paces exist.
+     */
     private const DEFAULTS = [
-        'run' => 3.0,   // ~5:33 /km
-        'bike' => 6.5,  // ~23 km/h
-        'other' => 3.0,
+        'run' => 2.5,   // ~6:40 /km
+        'bike' => 4.0,  // ~14 km/h, beginner mountain biking on trails
+        'other' => 2.5,
     ];
 
     public function metersFor(User $user, Sport $sport, int $durationMin): int

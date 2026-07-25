@@ -69,6 +69,19 @@ it('suggests a loop and returns the geometry', function () {
         ->assertJsonPath('distance_m', 8000);
 });
 
+it('honours a distance override', function () {
+    config(['services.ors.key' => 'k']);
+    Http::fake(['*' => Http::response(orsLoopResponse(), 200)]);
+    $user = userWithHome();
+    $workout = workoutFor($user);
+
+    $this->actingAs($user)
+        ->postJson("/plan/{$workout->id}/route/suggest", ['mode' => 'loop', 'distance_m' => 4000])
+        ->assertOk();
+
+    Http::assertSent(fn ($request) => ($request['options']['round_trip']['length'] ?? null) === 4000);
+});
+
 it('defaults to intervals mode for an intervals workout', function () {
     config(['services.ors.key' => 'k']);
     Http::fake(['*' => Http::response(orsLoopResponse(), 200)]);
@@ -124,8 +137,8 @@ it('estimates distance from recent pace', function () {
 it('falls back to a default pace without history', function () {
     $user = User::factory()->create();
 
-    // 30 min at the 3.0 m/s run default = 5400 m.
-    expect(app(PaceEstimator::class)->metersFor($user, Sport::Run, 30))->toBe(5400);
+    // 30 min at the 2.5 m/s beginner run default = 4500 m.
+    expect(app(PaceEstimator::class)->metersFor($user, Sport::Run, 30))->toBe(4500);
 });
 
 it('infers home from the median activity start point', function () {

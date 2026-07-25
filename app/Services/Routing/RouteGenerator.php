@@ -14,12 +14,13 @@ interface RouteGenerator
 
     /**
      * A fresh home-start loop of roughly `meters`. `seed` drives variety.
+     * `preferTrails` biases running onto paths/nature instead of roads.
      */
-    public function loop(GeoPoint $start, int $meters, Sport $sport, int $seed): GeneratedRoute;
+    public function loop(GeoPoint $start, int $meters, Sport $sport, int $seed, bool $preferTrails = false): GeneratedRoute;
 
     /**
      * An out-and-back on the flattest nearby direction, so repeats land on a
      * flat stretch. Total length is roughly `meters`.
      */
-    public function flatOutAndBack(GeoPoint $start, int $meters, Sport $sport): GeneratedRoute;
+    public function flatOutAndBack(GeoPoint $start, int $meters, Sport $sport, bool $preferTrails = false): GeneratedRoute;
 }

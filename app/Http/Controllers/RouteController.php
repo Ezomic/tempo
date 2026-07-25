@@ -31,13 +31,16 @@ class RouteController extends Controller
         }
 
         $start = new GeoPoint($user->home_lat, $user->home_lng);
-        $meters = $pace->metersFor($user, $plannedWorkout->sport, $plannedWorkout->duration_min ?? 45);
+        $meters = $request->integer('distance_m') > 0
+            ? max(500, min(60000, $request->integer('distance_m')))
+            : $pace->metersFor($user, $plannedWorkout->sport, $plannedWorkout->duration_min ?? 45);
         $mode = $request->string('mode')->value() ?: $this->defaultMode($plannedWorkout);
+        $preferTrails = $request->boolean('prefer_trails');
 
         try {
             $route = $mode === 'intervals'
-                ? $generator->flatOutAndBack($start, $meters, $plannedWorkout->sport)
-                : $generator->loop($start, $meters, $plannedWorkout->sport, $request->integer('seed') ?: random_int(1, 999999));
+                ? $generator->flatOutAndBack($start, $meters, $plannedWorkout->sport, $preferTrails)
+                : $generator->loop($start, $meters, $plannedWorkout->sport, $request->integer('seed') ?: random_int(1, 999999), $preferTrails);
         } catch (Throwable $e) {
             report($e);
 

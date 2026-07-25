@@ -27,9 +27,9 @@ final readonly class OrsRouteGenerator implements RouteGenerator
             && $this->key !== null && $this->key !== '';
     }
 
-    public function loop(GeoPoint $start, int $meters, Sport $sport, int $seed): GeneratedRoute
+    public function loop(GeoPoint $start, int $meters, Sport $sport, int $seed, bool $preferTrails = false): GeneratedRoute
     {
-        $feature = $this->directions($sport, [
+        $feature = $this->directions($sport, $preferTrails, [
             'coordinates' => [$start->toOrs()],
             'elevation' => true,
             'options' => [
@@ -44,7 +44,7 @@ final readonly class OrsRouteGenerator implements RouteGenerator
         return GeneratedRoute::fromOrs(['features' => [$feature]], 'loop');
     }
 
-    public function flatOutAndBack(GeoPoint $start, int $meters, Sport $sport): GeneratedRoute
+    public function flatOutAndBack(GeoPoint $start, int $meters, Sport $sport, bool $preferTrails = false): GeneratedRoute
     {
         $legMeters = (int) round($meters / 2);
 
@@ -53,7 +53,7 @@ final readonly class OrsRouteGenerator implements RouteGenerator
 
         foreach (self::BEARINGS as $bearing) {
             $destination = $start->destination((float) $bearing, $legMeters);
-            $feature = $this->directions($sport, [
+            $feature = $this->directions($sport, $preferTrails, [
                 'coordinates' => [$start->toOrs(), $destination->toOrs()],
                 'elevation' => true,
             ]);
@@ -105,9 +105,9 @@ final readonly class OrsRouteGenerator implements RouteGenerator
      * @param  array<string, mixed>  $body
      * @return array<string, mixed> a single ORS GeoJSON feature
      */
-    private function directions(Sport $sport, array $body): array
+    private function directions(Sport $sport, bool $preferTrails, array $body): array
     {
-        $profile = $this->profile($sport);
+        $profile = $this->profile($sport, $preferTrails);
 
         $response = $this->request()
             ->post("/v2/directions/{$profile}/geojson", $body)
@@ -119,11 +119,15 @@ final readonly class OrsRouteGenerator implements RouteGenerator
         return $feature;
     }
 
-    private function profile(Sport $sport): string
+    /**
+     * Bikes route as mountain biking (tracks/unpaved, away from traffic).
+     * Running favours trails when asked, otherwise ordinary walking paths.
+     */
+    private function profile(Sport $sport, bool $preferTrails): string
     {
         return match ($sport) {
-            Sport::Bike => 'cycling-regular',
-            default => 'foot-walking',
+            Sport::Bike => 'cycling-mountain',
+            default => $preferTrails ? 'foot-hiking' : 'foot-walking',
         };
     }
 

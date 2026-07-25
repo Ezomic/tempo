@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import RouteController from '@/actions/App/Http/Controllers/RouteController';
 import RouteMap from '@/components/RouteMap.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -13,6 +14,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { postJson } from '@/lib/http';
 
 interface RouteResult {
@@ -27,6 +30,7 @@ interface RouteResult {
 const props = defineProps<{
     workoutId: number;
     workoutType: string | null;
+    sport: string;
     triggerLabel: string;
 }>();
 
@@ -37,6 +41,8 @@ const route = ref<RouteResult | null>(null);
 const mode = ref<string>(
     props.workoutType === 'intervals' ? 'intervals' : 'loop',
 );
+const distanceKm = ref<number | string>('');
+const preferTrails = ref(false);
 
 async function generate(): Promise<void> {
     loading.value = true;
@@ -44,12 +50,26 @@ async function generate(): Promise<void> {
     const seed = Math.floor(Math.random() * 1_000_000);
     const { ok, data } = await postJson<RouteResult>(
         RouteController.suggest.url(props.workoutId),
-        { mode: mode.value, seed },
+        {
+            mode: mode.value,
+            seed,
+            prefer_trails: preferTrails.value,
+            distance_m:
+                distanceKm.value !== '' && Number(distanceKm.value) > 0
+                    ? Math.round(Number(distanceKm.value) * 1000)
+                    : undefined,
+        },
     );
     loading.value = false;
 
     if (ok) {
         route.value = data;
+
+        // Seed the distance control from the first suggestion, then leave it
+        // under the user's control.
+        if (distanceKm.value === '') {
+            distanceKm.value = Math.round(data.distance_m / 100) / 10;
+        }
     } else {
         error.value = data.message ?? 'Could not generate a route.';
     }
@@ -121,25 +141,62 @@ function km(meters: number): string {
                 </DialogDescription>
             </DialogHeader>
 
-            <div class="flex gap-2">
-                <Button
-                    type="button"
-                    size="sm"
-                    :variant="mode === 'loop' ? 'default' : 'outline'"
-                    :disabled="loading"
-                    @click="setMode('loop')"
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="flex gap-2">
+                    <Button
+                        type="button"
+                        size="sm"
+                        :variant="mode === 'loop' ? 'default' : 'outline'"
+                        :disabled="loading"
+                        @click="setMode('loop')"
+                    >
+                        Loop
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        :variant="mode === 'intervals' ? 'default' : 'outline'"
+                        :disabled="loading"
+                        @click="setMode('intervals')"
+                    >
+                        Flat reps
+                    </Button>
+                </div>
+
+                <div class="grid gap-1">
+                    <Label for="distance" class="text-xs">Distance (km)</Label>
+                    <Input
+                        id="distance"
+                        v-model.number="distanceKm"
+                        type="number"
+                        min="0.5"
+                        step="0.5"
+                        class="w-24"
+                        @change="generate"
+                    />
+                </div>
+
+                <label
+                    v-if="sport === 'run'"
+                    class="flex items-center gap-2 text-sm"
                 >
-                    Loop
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    :variant="mode === 'intervals' ? 'default' : 'outline'"
-                    :disabled="loading"
-                    @click="setMode('intervals')"
+                    <Checkbox
+                        :model-value="preferTrails"
+                        @update:model-value="
+                            (v) => {
+                                preferTrails = v === true;
+                                generate();
+                            }
+                        "
+                    />
+                    Prefer trails
+                </label>
+                <span
+                    v-else-if="sport === 'bike'"
+                    class="text-xs text-muted-foreground"
                 >
-                    Flat reps
-                </Button>
+                    Mountain-bike route (tracks &amp; trails)
+                </span>
             </div>
 
             <div v-if="error" class="text-sm text-destructive">{{ error }}</div>

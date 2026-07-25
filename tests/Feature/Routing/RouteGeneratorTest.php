@@ -48,12 +48,20 @@ it('builds a loop from an ORS round_trip and swaps to lat/lng', function () {
         && $request['options']['round_trip']['seed'] === 42);
 });
 
-it('uses the cycling profile for bike routes', function () {
+it('routes bikes as mountain biking', function () {
     Http::fake(['ors.test/*' => Http::response(orsFeature([[5.1, 52.0]], 5000.0), 200)]);
 
     ors()->loop(new GeoPoint(52.0, 5.1), 5000, Sport::Bike, 1);
 
-    Http::assertSent(fn ($request) => str_contains($request->url(), '/v2/directions/cycling-regular/geojson'));
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v2/directions/cycling-mountain/geojson'));
+});
+
+it('uses the hiking profile when running prefers trails', function () {
+    Http::fake(['ors.test/*' => Http::response(orsFeature([[5.1, 52.0]], 5000.0), 200)]);
+
+    ors()->loop(new GeoPoint(52.0, 5.1), 5000, Sport::Run, 1, preferTrails: true);
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v2/directions/foot-hiking/geojson'));
 });
 
 it('picks the flattest bearing for an out-and-back', function () {
