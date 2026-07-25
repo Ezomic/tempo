@@ -45,4 +45,9 @@ return [
         'token' => env('CHRONOS_API_TOKEN'),
     ],
 
+    'ors' => [
+        'url' => env('ORS_API_URL', 'https://api.openrouteservice.org'),
+        'key' => env('ORS_API_KEY'),
+    ],
+
 ];

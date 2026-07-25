@@ -22,6 +22,13 @@ export interface WorkoutStep {
     label: string | null;
 }
 
+export interface SavedRoute {
+    coordinates: [number, number][];
+    distance_m: number;
+    ascent_m: number;
+    kind: string;
+}
+
 export interface PlannedWorkout {
     id: number;
     date: string;
@@ -34,6 +41,7 @@ export interface PlannedWorkout {
     steps: WorkoutStep[];
     pushed: boolean;
     chronos_url: string | null;
+    route: SavedRoute | null;
 }
 
 export interface FormStep {

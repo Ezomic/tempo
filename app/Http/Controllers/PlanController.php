@@ -12,6 +12,7 @@ use App\Http\Requests\StorePlannedWorkoutRequest;
 use App\Models\PlannedWorkout;
 use App\Models\PlannedWorkoutStep;
 use App\Services\Chronos\ChronosClient;
+use App\Services\Routing\RouteGenerator;
 use App\Services\Training\WorkoutDescriber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,8 +22,10 @@ use Throwable;
 
 class PlanController extends Controller
 {
-    public function index(Request $request, ChronosClient $chronos, WorkoutDescriber $describer): Response
+    public function index(Request $request, ChronosClient $chronos, WorkoutDescriber $describer, RouteGenerator $routes): Response
     {
+        $user = $request->user();
+
         $workouts = $request->user()->plannedWorkouts()
             ->with('steps')
             ->orderBy('date')
@@ -52,6 +55,12 @@ class PlanController extends Controller
                 ])->all(),
                 'pushed' => $workout->isPushed(),
                 'chronos_url' => $workout->chronos_url,
+                'route' => $workout->hasRoute() ? [
+                    'coordinates' => $workout->route_geometry,
+                    'distance_m' => $workout->route_distance_m,
+                    'ascent_m' => $workout->route_ascent_m,
+                    'kind' => $workout->route_kind,
+                ] : null,
             ]);
 
         return Inertia::render('Plan', [
@@ -59,6 +68,8 @@ class PlanController extends Controller
             'chronosConfigured' => $chronos->isConfigured(),
             'intensityOptions' => Intensity::options(),
             'workoutTypeOptions' => WorkoutType::options(),
+            'routingConfigured' => $routes->isConfigured(),
+            'homeSet' => $user->home_lat !== null && $user->home_lng !== null,
         ]);
     }
 

@@ -8,6 +8,7 @@ import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editGarmin } from '@/routes/garmin';
 import { edit as editProfile } from '@/routes/profile';
+import { edit as editRoutes } from '@/routes/routes';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
@@ -23,6 +24,10 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Garmin',
         href: editGarmin(),
+    },
+    {
+        title: 'Home & routes',
+        href: editRoutes(),
     },
     {
         title: 'Appearance',
