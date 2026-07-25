@@ -63,6 +63,48 @@ async function useMostCommonStart(): Promise<void> {
     }
 }
 
+interface GeoResult {
+    label: string;
+    lat: number;
+    lng: number;
+}
+
+const query = ref('');
+const results = ref<GeoResult[]>([]);
+const searching = ref(false);
+const searchError = ref<string | null>(null);
+
+async function searchAddress(): Promise<void> {
+    if (query.value.trim() === '') {
+        return;
+    }
+
+    searching.value = true;
+    searchError.value = null;
+    results.value = [];
+    const { ok, data } = await postJson<{
+        results?: GeoResult[];
+        message?: string;
+    }>(HomeLocationController.geocode.url(), { query: query.value });
+    searching.value = false;
+
+    if (ok) {
+        results.value = data.results ?? [];
+
+        if (results.value.length === 0) {
+            searchError.value = 'No matches for that address.';
+        }
+    } else {
+        searchError.value = data.message ?? 'Address lookup failed.';
+    }
+}
+
+function chooseResult(result: GeoResult): void {
+    setMarker([result.lat, result.lng]);
+    query.value = result.label;
+    results.value = [];
+}
+
 function save(): void {
     form.patch(update().url, { preserveScroll: true });
 }
@@ -95,9 +137,46 @@ function save(): void {
         </div>
 
         <p class="text-sm text-muted-foreground">
-            Click the map to drop your home pin, or pull it from your most
-            frequent activity start.
+            Search an address, click the map, or pull it from your most frequent
+            activity start, then drag the pin to fine-tune.
         </p>
+
+        <div v-if="routingConfigured" class="grid gap-2">
+            <Label for="address">Search an address</Label>
+            <div class="flex gap-2">
+                <Input
+                    id="address"
+                    v-model="query"
+                    placeholder="Street, city"
+                    @keyup.enter="searchAddress"
+                />
+                <Button
+                    type="button"
+                    variant="outline"
+                    :disabled="searching"
+                    @click="searchAddress"
+                >
+                    {{ searching ? 'Searching…' : 'Search' }}
+                </Button>
+            </div>
+            <ul
+                v-if="results.length > 0"
+                class="divide-y overflow-hidden rounded-lg border"
+            >
+                <li v-for="(result, i) in results" :key="i">
+                    <button
+                        type="button"
+                        class="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                        @click="chooseResult(result)"
+                    >
+                        {{ result.label }}
+                    </button>
+                </li>
+            </ul>
+            <p v-if="searchError" class="text-sm text-destructive">
+                {{ searchError }}
+            </p>
+        </div>
 
         <RouteMap
             :marker="marker"

@@ -23,9 +23,16 @@ const emit = defineEmits<{ 'update:marker': [value: [number, number]] }>();
 const el = ref<HTMLDivElement | null>(null);
 let map: L.Map | null = null;
 let line: L.Polyline | null = null;
-let pin: L.CircleMarker | null = null;
+let pin: L.Marker | null = null;
 
 const LIME = '#84cc16';
+
+const dotIcon = L.divIcon({
+    className: '',
+    html: '<span style="display:block;width:16px;height:16px;border-radius:9999px;background:#84cc16;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)"></span>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+});
 
 function drawLine(): void {
     if (!map) {
@@ -52,15 +59,28 @@ function drawPin(): void {
     pin = null;
 
     if (props.marker) {
-        pin = L.circleMarker(props.marker, {
-            radius: 8,
-            color: LIME,
-            fillColor: LIME,
-            fillOpacity: 1,
+        pin = L.marker(props.marker, {
+            icon: dotIcon,
+            draggable: props.interactive,
         }).addTo(map);
 
-        if (props.coordinates.length <= 1) {
-            map.setView(props.marker, 14);
+        if (props.interactive) {
+            pin.on('dragend', () => {
+                const latLng = pin?.getLatLng();
+
+                if (latLng) {
+                    emit('update:marker', [latLng.lat, latLng.lng]);
+                }
+            });
+        }
+
+        // Recenter only when the pin jumps out of view (e.g. an address search),
+        // so dragging to fine-tune does not fight the user's zoom.
+        if (
+            props.coordinates.length <= 1 &&
+            !map.getBounds().contains(props.marker)
+        ) {
+            map.setView(props.marker, Math.max(map.getZoom(), 14));
         }
     }
 }

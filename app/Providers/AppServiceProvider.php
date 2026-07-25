@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\Chronos\ChronosClient;
 use App\Services\Garmin\GarminClient;
 use App\Services\Garmin\SidecarGarminClient;
+use App\Services\Routing\OrsGeocoder;
 use App\Services\Routing\OrsRouteGenerator;
 use App\Services\Routing\RouteGenerator;
 use Carbon\CarbonImmutable;
@@ -31,6 +32,11 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(RouteGenerator::class, fn (): OrsRouteGenerator => new OrsRouteGenerator(
+            baseUrl: config('services.ors.url'),
+            key: config('services.ors.key'),
+        ));
+
+        $this->app->bind(OrsGeocoder::class, fn (): OrsGeocoder => new OrsGeocoder(
             baseUrl: config('services.ors.url'),
             key: config('services.ors.key'),
         ));
