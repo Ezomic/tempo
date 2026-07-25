@@ -25,6 +25,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/routes', [HomeLocationController::class, 'edit'])->name('routes.edit');
     Route::patch('settings/routes', [HomeLocationController::class, 'update'])->name('routes.update');
     Route::post('settings/routes/infer', [HomeLocationController::class, 'infer'])->name('routes.infer');
+    Route::post('settings/routes/geocode', [HomeLocationController::class, 'geocode'])
+        ->middleware('throttle:30,1')->name('routes.geocode');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

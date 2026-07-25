@@ -7,12 +7,14 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateHomeLocationRequest;
 use App\Services\Routing\HomeLocationService;
+use App\Services\Routing\OrsGeocoder;
 use App\Services\Routing\RouteGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class HomeLocationController extends Controller
 {
@@ -44,5 +46,28 @@ class HomeLocationController extends Controller
         }
 
         return response()->json(['lat' => $home->lat, 'lng' => $home->lng]);
+    }
+
+    public function geocode(Request $request, OrsGeocoder $geocoder): JsonResponse
+    {
+        if (! $geocoder->isConfigured()) {
+            return response()->json(['message' => 'Address search is not configured.'], 422);
+        }
+
+        $query = trim((string) $request->input('query'));
+
+        if ($query === '') {
+            return response()->json(['results' => []]);
+        }
+
+        try {
+            $results = $geocoder->search($query);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'Address lookup failed. Try again shortly.'], 502);
+        }
+
+        return response()->json(['results' => $results]);
     }
 }
