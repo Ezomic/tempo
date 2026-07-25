@@ -76,19 +76,16 @@ async function generate(): Promise<void> {
 }
 
 function setMode(value: string): void {
-    if (mode.value === value) {
-        return;
-    }
-
     mode.value = value;
-    generate();
 }
 
 function onOpenChange(value: boolean): void {
     open.value = value;
 
-    if (value && route.value === null) {
-        generate();
+    // Start fresh; wait for the user to set their options and hit Generate.
+    if (value) {
+        route.value = null;
+        error.value = null;
     }
 }
 
@@ -171,8 +168,8 @@ function km(meters: number): string {
                         type="number"
                         min="0.5"
                         step="0.5"
+                        placeholder="auto"
                         class="w-24"
-                        @change="generate"
                     />
                 </div>
 
@@ -182,12 +179,7 @@ function km(meters: number): string {
                 >
                     <Checkbox
                         :model-value="preferTrails"
-                        @update:model-value="
-                            (v) => {
-                                preferTrails = v === true;
-                                generate();
-                            }
-                        "
+                        @update:model-value="(v) => (preferTrails = v === true)"
                     />
                     Prefer trails
                 </label>
@@ -208,9 +200,13 @@ function km(meters: number): string {
             />
             <div
                 v-else
-                class="flex h-72 items-center justify-center rounded-lg border text-sm text-muted-foreground"
+                class="flex h-72 items-center justify-center rounded-lg border px-6 text-center text-sm text-muted-foreground"
             >
-                {{ loading ? 'Generating…' : 'No route yet.' }}
+                {{
+                    loading
+                        ? 'Generating…'
+                        : 'Set your distance and options, then generate a route.'
+                }}
             </div>
 
             <div v-if="route" class="flex items-center gap-4 text-sm">
@@ -227,20 +223,26 @@ function km(meters: number): string {
 
             <DialogFooter class="gap-2">
                 <Button
+                    v-if="route === null"
                     type="button"
-                    variant="outline"
                     :disabled="loading"
                     @click="generate"
                 >
-                    Regenerate
+                    Generate route
                 </Button>
-                <Button
-                    type="button"
-                    :disabled="loading || route === null"
-                    @click="save"
-                >
-                    Save to workout
-                </Button>
+                <template v-else>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        :disabled="loading"
+                        @click="generate"
+                    >
+                        Regenerate
+                    </Button>
+                    <Button type="button" :disabled="loading" @click="save">
+                        Save to workout
+                    </Button>
+                </template>
             </DialogFooter>
         </DialogContent>
     </Dialog>
