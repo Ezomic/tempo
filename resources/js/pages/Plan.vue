@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { Form, Head, useForm, usePage } from '@inertiajs/vue3';
+import { Form, Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PlanController from '@/actions/App/Http/Controllers/PlanController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import RouteMap from '@/components/RouteMap.vue';
+import SuggestRouteDialog from '@/components/SuggestRouteDialog.vue';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -15,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { index as planIndex } from '@/routes/plan';
+import { edit as editRoutes } from '@/routes/routes';
 import type {
     FormStep,
     IntensityOption,
@@ -28,6 +31,8 @@ const props = defineProps<{
     chronosConfigured: boolean;
     intensityOptions: IntensityOption[];
     workoutTypeOptions: WorkoutTypeOption[];
+    routingConfigured: boolean;
+    homeSet: boolean;
 }>();
 
 defineOptions({
@@ -516,6 +521,66 @@ function stepLine(step: WorkoutStep): string {
                                     Remove
                                 </Button>
                             </Form>
+                        </div>
+
+                        <div class="w-full">
+                            <div
+                                v-if="routingConfigured && homeSet"
+                                class="space-y-2"
+                            >
+                                <template v-if="workout.route">
+                                    <RouteMap
+                                        :coordinates="workout.route.coordinates"
+                                        height-class="h-40"
+                                    />
+                                    <div
+                                        class="flex flex-wrap items-center gap-3 text-sm"
+                                    >
+                                        <span class="text-muted-foreground">
+                                            Route:
+                                            <span
+                                                class="font-medium text-foreground"
+                                            >
+                                                {{
+                                                    (
+                                                        workout.route
+                                                            .distance_m / 1000
+                                                    ).toFixed(1)
+                                                }}
+                                                km
+                                            </span>
+                                            · {{ workout.route.ascent_m }} m
+                                            climb
+                                        </span>
+                                        <SuggestRouteDialog
+                                            :workout-id="workout.id"
+                                            :workout-type="
+                                                workout.workout_type?.value ??
+                                                null
+                                            "
+                                            trigger-label="New route"
+                                        />
+                                    </div>
+                                </template>
+                                <SuggestRouteDialog
+                                    v-else
+                                    :workout-id="workout.id"
+                                    :workout-type="
+                                        workout.workout_type?.value ?? null
+                                    "
+                                    trigger-label="Suggest a route"
+                                />
+                            </div>
+                            <p v-else class="text-xs text-muted-foreground">
+                                <Link :href="editRoutes()" class="underline">
+                                    {{
+                                        homeSet
+                                            ? 'Add an openrouteservice key'
+                                            : 'Set your home location'
+                                    }}
+                                </Link>
+                                to get route suggestions.
+                            </p>
                         </div>
                     </li>
                 </ul>

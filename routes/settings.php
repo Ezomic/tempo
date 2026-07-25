@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\GarminController;
+use App\Http\Controllers\Settings\HomeLocationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('throttle:10,1')->name('garmin.sync');
     Route::patch('settings/garmin/hr-zones', [GarminController::class, 'updateSettings'])->name('garmin.hr-zones.update');
     Route::delete('settings/garmin', [GarminController::class, 'disconnect'])->name('garmin.disconnect');
+
+    Route::get('settings/routes', [HomeLocationController::class, 'edit'])->name('routes.edit');
+    Route::patch('settings/routes', [HomeLocationController::class, 'update'])->name('routes.update');
+    Route::post('settings/routes/infer', [HomeLocationController::class, 'infer'])->name('routes.infer');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

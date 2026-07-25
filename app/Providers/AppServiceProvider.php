@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Services\Chronos\ChronosClient;
 use App\Services\Garmin\GarminClient;
 use App\Services\Garmin\SidecarGarminClient;
+use App\Services\Routing\OrsRouteGenerator;
+use App\Services\Routing\RouteGenerator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ChronosClient::class, fn (): ChronosClient => new ChronosClient(
             baseUrl: config('services.chronos.url'),
             token: config('services.chronos.token'),
+        ));
+
+        $this->app->bind(RouteGenerator::class, fn (): OrsRouteGenerator => new OrsRouteGenerator(
+            baseUrl: config('services.ors.url'),
+            key: config('services.ors.key'),
         ));
     }
 

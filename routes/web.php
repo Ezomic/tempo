@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\RouteController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -17,6 +18,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('plan', [PlanController::class, 'store'])->name('plan.store');
     Route::post('plan/{plannedWorkout}/push', [PlanController::class, 'push'])->name('plan.push');
     Route::delete('plan/{plannedWorkout}', [PlanController::class, 'destroy'])->name('plan.destroy');
+
+    Route::post('plan/{plannedWorkout}/route/suggest', [RouteController::class, 'suggest'])
+        ->middleware('throttle:20,1')->name('plan.route.suggest');
+    Route::post('plan/{plannedWorkout}/route', [RouteController::class, 'save'])->name('plan.route.save');
 });
 
 require __DIR__.'/auth.php';

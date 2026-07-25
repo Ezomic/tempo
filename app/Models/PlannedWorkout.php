@@ -18,6 +18,10 @@ use Illuminate\Support\Carbon;
  * @property WorkoutType|null $workout_type
  * @property string $title
  * @property string|null $notes
+ * @property array<int, array{0: float, 1: float}>|null $route_geometry
+ * @property int|null $route_distance_m
+ * @property int|null $route_ascent_m
+ * @property string|null $route_kind
  * @property int|null $duration_min
  * @property string|null $chronos_event_id
  * @property string|null $chronos_url
@@ -32,6 +36,10 @@ use Illuminate\Support\Carbon;
     'workout_type',
     'title',
     'notes',
+    'route_geometry',
+    'route_distance_m',
+    'route_ascent_m',
+    'route_kind',
     'duration_min',
     'chronos_event_id',
     'chronos_url',
@@ -65,6 +73,11 @@ class PlannedWorkout extends Model
         return $this->hasMany(PlannedWorkoutStep::class)->orderBy('position');
     }
 
+    public function hasRoute(): bool
+    {
+        return $this->route_geometry !== null;
+    }
+
     /**
      * @return array<string, string>
      */
@@ -74,6 +87,7 @@ class PlannedWorkout extends Model
             'date' => 'date',
             'sport' => Sport::class,
             'workout_type' => WorkoutType::class,
+            'route_geometry' => 'array',
             'pushed_at' => 'datetime',
         ];
     }
