@@ -26,6 +26,26 @@ enum WorkoutType: string
     }
 
     /**
+     * Hard sessions are the ones worth downgrading when readiness is low.
+     */
+    public function isHard(): bool
+    {
+        return in_array($this, [self::Tempo, self::Intervals, self::Long], true);
+    }
+
+    /**
+     * The easier session this one downgrades to, or null if it is already easy.
+     */
+    public function downgrade(): ?self
+    {
+        return match ($this) {
+            self::Tempo, self::Intervals => self::Easy,
+            self::Long => self::Endurance,
+            default => null,
+        };
+    }
+
+    /**
      * Rough TRIMP per minute used to project future load from planned
      * sessions that have no completed activity to measure against.
      */

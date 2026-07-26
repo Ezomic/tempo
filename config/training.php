@@ -47,4 +47,12 @@ return [
         'easy_target' => 80.0,
     ],
 
+    /*
+    | Readiness score at or below which a hard planned session is offered a
+    | downgrade.
+    */
+    'readiness' => [
+        'downgrade_below' => 60,
+    ],
+
 ];

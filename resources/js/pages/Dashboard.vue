@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { dashboard } from '@/routes';
 import { index as activitiesIndex, show } from '@/routes/activities';
 import { edit as garminSettings } from '@/routes/garmin';
-import { index as planIndex } from '@/routes/plan';
+import { index as planIndex, downgrade } from '@/routes/plan';
 
 interface Contributor {
     key: string;
@@ -100,11 +100,22 @@ interface Activity {
 }
 
 interface TodayPlan {
+    id: number;
     sport: string;
     title: string;
+    workout_type: string | null;
     duration_min: number | null;
     notes: string | null;
     pushed: boolean;
+    adapted: boolean;
+}
+
+interface AdaptiveSuggestion {
+    planned_workout_id: number;
+    from_label: string;
+    to_type: string;
+    to_label: string;
+    reason: string;
 }
 
 const props = defineProps<{
@@ -119,7 +130,22 @@ const props = defineProps<{
     weekly: Week[];
     recentActivities: Activity[];
     todayPlan: TodayPlan | null;
+    adaptiveSuggestion: AdaptiveSuggestion | null;
 }>();
+
+const suggestionDismissed = ref(false);
+
+function acceptDowngrade(): void {
+    if (!props.adaptiveSuggestion) {
+        return;
+    }
+
+    router.post(
+        downgrade(props.adaptiveSuggestion.planned_workout_id).url,
+        {},
+        { preserveScroll: true },
+    );
+}
 
 defineOptions({
     layout: {
@@ -1095,6 +1121,43 @@ function duration(seconds: number | null): string {
                             class="mt-3 rounded-lg border bg-background px-3 py-2 text-xs text-muted-foreground"
                         >
                             {{ todayPlan.notes }}
+                        </div>
+
+                        <div
+                            v-if="todayPlan.adapted"
+                            class="mt-3 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary"
+                        >
+                            Eased for today based on your readiness.
+                        </div>
+
+                        <!-- Adaptive downgrade suggestion -->
+                        <div
+                            v-else-if="
+                                adaptiveSuggestion && !suggestionDismissed
+                            "
+                            class="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-3"
+                        >
+                            <p
+                                class="text-xs text-amber-700 dark:text-amber-300"
+                            >
+                                {{ adaptiveSuggestion.reason }}
+                            </p>
+                            <div class="mt-2.5 flex gap-2">
+                                <button
+                                    type="button"
+                                    class="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
+                                    @click="acceptDowngrade"
+                                >
+                                    Ease it to {{ adaptiveSuggestion.to_label }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex h-8 items-center rounded-lg border px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+                                    @click="suggestionDismissed = true"
+                                >
+                                    Keep it
+                                </button>
+                            </div>
                         </div>
                     </template>
                     <div

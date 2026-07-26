@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\CreatePlannedWorkoutAction;
+use App\Actions\DowngradeWorkoutAction;
 use App\Actions\PushPlannedWorkoutAction;
 use App\Actions\PushWorkoutToGarminAction;
 use App\Enums\Intensity;
@@ -19,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 use Throwable;
 
 class PlanController extends Controller
@@ -120,6 +122,19 @@ class PlanController extends Controller
         $plannedWorkout->delete();
 
         return back()->with('status', 'Workout removed.');
+    }
+
+    public function downgrade(Request $request, PlannedWorkout $plannedWorkout, DowngradeWorkoutAction $action): RedirectResponse
+    {
+        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+
+        try {
+            $action->handle($plannedWorkout);
+        } catch (RuntimeException) {
+            return back()->withErrors(['downgrade' => 'This session cannot be downgraded.']);
+        }
+
+        return back()->with('status', 'Session eased for today.');
     }
 
     /**

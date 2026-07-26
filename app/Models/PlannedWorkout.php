@@ -28,6 +28,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $pushed_at
  * @property string|null $garmin_workout_id
  * @property Carbon|null $garmin_pushed_at
+ * @property string|null $downgraded_from
+ * @property Carbon|null $adapted_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -48,6 +50,8 @@ use Illuminate\Support\Carbon;
     'pushed_at',
     'garmin_workout_id',
     'garmin_pushed_at',
+    'downgraded_from',
+    'adapted_at',
 ])]
 class PlannedWorkout extends Model
 {
@@ -99,6 +103,7 @@ class PlannedWorkout extends Model
             'route_geometry' => 'array',
             'pushed_at' => 'datetime',
             'garmin_pushed_at' => 'datetime',
+            'adapted_at' => 'datetime',
         ];
     }
 }
