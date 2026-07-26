@@ -8,6 +8,7 @@ use App\Enums\WorkoutType;
 use App\Models\Activity;
 use App\Models\PlannedWorkout;
 use App\Models\User;
+use App\Services\Training\AdaptivePlanService;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\LoadGuardrailService;
 use App\Services\Training\ReadinessService;
@@ -27,6 +28,7 @@ class DashboardController extends Controller
         private readonly FitnessCurveService $fitnessCurve,
         private readonly LoadGuardrailService $guardrails,
         private readonly ZoneDistributionService $zones,
+        private readonly AdaptivePlanService $adaptive,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -35,11 +37,13 @@ class DashboardController extends Controller
         $today = CarbonImmutable::now();
 
         $load = $this->load->acuteChronic($user, $today);
+        $readiness = $this->readiness->snapshot($user, $load['ratio']);
+        $todayPlan = $user->plannedWorkouts()->whereDate('date', $today->toDateString())->first();
 
         return Inertia::render('Dashboard', [
             'hasData' => $user->activities()->exists() || $user->wellnessDays()->exists(),
             'garminConnected' => $user->garminConnection?->isConnected() ?? false,
-            'readiness' => $this->readiness->snapshot($user, $load['ratio']),
+            'readiness' => $readiness,
             'load' => $load,
             'chronicBySport' => $this->load->chronicBySport($user, $today),
             'guardrails' => $this->guardrails->guardrails($user, $today),
@@ -50,7 +54,8 @@ class DashboardController extends Controller
             ],
             'weekly' => $this->load->weeklyBySport($user, $today, 8),
             'recentActivities' => $this->recentActivities($user),
-            'todayPlan' => $this->todayPlan($user->plannedWorkouts()->whereDate('date', $today->toDateString())->first()),
+            'todayPlan' => $this->todayPlan($todayPlan),
+            'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
         ]);
     }
 
@@ -140,11 +145,14 @@ class DashboardController extends Controller
         }
 
         return [
+            'id' => $workout->id,
             'sport' => $workout->sport->value,
             'title' => $workout->title,
+            'workout_type' => $workout->workout_type?->value,
             'duration_min' => $workout->duration_min,
             'notes' => $workout->notes,
             'pushed' => $workout->isPushed(),
+            'adapted' => $workout->adapted_at !== null,
         ];
     }
 }
