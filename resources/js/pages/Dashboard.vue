@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { dashboard } from '@/routes';
 import { index as activitiesIndex, show } from '@/routes/activities';
 import { edit as garminSettings } from '@/routes/garmin';
@@ -30,6 +30,19 @@ interface Week {
     total: number;
 }
 
+interface CurvePoint {
+    date: string;
+    ctl: number;
+    atl: number;
+    tsb: number;
+}
+
+interface FitnessCurve {
+    current: CurvePoint | null;
+    history: CurvePoint[];
+    projection: CurvePoint[];
+}
+
 interface Activity {
     id: number;
     sport: string;
@@ -52,6 +65,7 @@ const props = defineProps<{
     garminConnected: boolean;
     readiness: Readiness | null;
     load: Load;
+    fitnessCurve: FitnessCurve;
     weekly: Week[];
     recentActivities: Activity[];
     todayPlan: TodayPlan | null;
@@ -136,6 +150,151 @@ function weekLabel(iso: string): string {
 function km(m: number | null): string {
     return m === null ? '—' : `${(m / 1000).toFixed(1)} km`;
 }
+
+type CurveWindow = '6w' | '3m' | '1y';
+
+const CHART_W = 720;
+const CHART_H = 200;
+const PAD_Y = 14;
+
+const curveWindow = ref<CurveWindow>('6w');
+const curveDays: Record<CurveWindow, number> = {
+    '6w': 42,
+    '3m': 90,
+    '1y': 365,
+};
+const curveWindows: CurveWindow[] = ['6w', '3m', '1y'];
+
+const historyShown = computed(() =>
+    props.fitnessCurve.history.slice(-curveDays[curveWindow.value]),
+);
+
+const curvePoints = computed(() => [
+    ...historyShown.value,
+    ...props.fitnessCurve.projection,
+]);
+
+const hasCurve = computed(() => curvePoints.value.length >= 2);
+
+const yBounds = computed(() => {
+    const values = curvePoints.value.flatMap((p) => [p.ctl, p.atl, p.tsb, 0]);
+    const min = Math.min(...values);
+    let max = Math.max(...values);
+
+    if (min === max) {
+        max = min + 1;
+    }
+
+    return { min, max };
+});
+
+function xAt(index: number): number {
+    const n = curvePoints.value.length;
+
+    return n <= 1 ? 0 : (index / (n - 1)) * CHART_W;
+}
+
+function yAt(value: number): number {
+    const { min, max } = yBounds.value;
+    const plotH = CHART_H - PAD_Y * 2;
+
+    return PAD_Y + ((max - value) / (max - min)) * plotH;
+}
+
+function linePath(
+    getter: (p: CurvePoint) => number,
+    from: number,
+    to: number,
+): string {
+    let d = '';
+
+    for (let i = from; i < to; i++) {
+        const point = curvePoints.value[i];
+        d += `${i === from ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(getter(point)).toFixed(1)} `;
+    }
+
+    return d.trim();
+}
+
+const historyEnd = computed(() => historyShown.value.length);
+const projectionStart = computed(() => Math.max(0, historyEnd.value - 1));
+const hasProjection = computed(
+    () => props.fitnessCurve.projection.length > 0 && historyEnd.value > 0,
+);
+
+const ctlHistoryPath = computed(() =>
+    linePath((p) => p.ctl, 0, historyEnd.value),
+);
+const atlHistoryPath = computed(() =>
+    linePath((p) => p.atl, 0, historyEnd.value),
+);
+const ctlProjectionPath = computed(() =>
+    hasProjection.value
+        ? linePath(
+              (p) => p.ctl,
+              projectionStart.value,
+              curvePoints.value.length,
+          )
+        : '',
+);
+const atlProjectionPath = computed(() =>
+    hasProjection.value
+        ? linePath(
+              (p) => p.atl,
+              projectionStart.value,
+              curvePoints.value.length,
+          )
+        : '',
+);
+
+const zeroLineY = computed(() => yAt(0));
+
+const tsbAreaPath = computed(() => {
+    const end = historyEnd.value;
+
+    if (end === 0) {
+        return '';
+    }
+
+    const zero = zeroLineY.value.toFixed(1);
+    let d = `M ${xAt(0).toFixed(1)} ${zero} `;
+
+    for (let i = 0; i < end; i++) {
+        d += `L ${xAt(i).toFixed(1)} ${yAt(curvePoints.value[i].tsb).toFixed(1)} `;
+    }
+
+    d += `L ${xAt(end - 1).toFixed(1)} ${zero} Z`;
+
+    return d;
+});
+
+const todayX = computed(() => xAt(Math.max(0, historyEnd.value - 1)));
+
+const formClass = computed<string>(() => {
+    const tsb = props.fitnessCurve.current?.tsb ?? 0;
+
+    return tsb >= 5
+        ? 'text-primary'
+        : tsb >= -10
+          ? 'text-foreground'
+          : tsb >= -30
+            ? 'text-amber-500'
+            : 'text-red-500';
+});
+
+const formLabel = computed<string>(() => {
+    const tsb = props.fitnessCurve.current?.tsb ?? 0;
+
+    return tsb >= 15
+        ? 'Fresh'
+        : tsb >= 5
+          ? 'Rested'
+          : tsb >= -10
+            ? 'Neutral'
+            : tsb >= -30
+              ? 'Fatigued'
+              : 'Very fatigued';
+});
 
 function duration(seconds: number | null): string {
     if (seconds === null) {
@@ -395,6 +554,159 @@ function duration(seconds: number | null): string {
                     </div>
                 </section>
             </div>
+
+            <!-- Fitness / fatigue / form -->
+            <section class="rounded-xl border bg-card p-5">
+                <div
+                    class="mb-4 flex flex-wrap items-baseline justify-between gap-2"
+                >
+                    <div>
+                        <h2 class="text-sm font-bold">Fitness &amp; form</h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            CTL / ATL / TSB · dashed is projected from your plan
+                        </p>
+                    </div>
+                    <div class="flex rounded-lg border p-0.5 text-xs">
+                        <button
+                            v-for="w in curveWindows"
+                            :key="w"
+                            type="button"
+                            class="rounded-md px-2.5 py-1 font-medium"
+                            :class="
+                                curveWindow === w
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            "
+                            @click="curveWindow = w"
+                        >
+                            {{ w }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <div
+                            class="text-3xl font-extrabold tracking-tight text-primary"
+                        >
+                            {{ fitnessCurve.current?.ctl ?? '—' }}
+                        </div>
+                        <div class="mt-1 text-xs text-muted-foreground">
+                            Fitness (CTL)
+                        </div>
+                    </div>
+                    <div>
+                        <div
+                            class="text-3xl font-extrabold tracking-tight text-amber-500"
+                        >
+                            {{ fitnessCurve.current?.atl ?? '—' }}
+                        </div>
+                        <div class="mt-1 text-xs text-muted-foreground">
+                            Fatigue (ATL)
+                        </div>
+                    </div>
+                    <div>
+                        <div
+                            class="text-3xl font-extrabold tracking-tight"
+                            :class="formClass"
+                        >
+                            {{ fitnessCurve.current?.tsb ?? '—' }}
+                        </div>
+                        <div class="mt-1 text-xs text-muted-foreground">
+                            Form (TSB) · {{ formLabel }}
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="hasCurve" class="mt-5">
+                    <svg
+                        :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
+                        preserveAspectRatio="none"
+                        class="h-44 w-full overflow-visible"
+                    >
+                        <!-- zero line for form -->
+                        <line
+                            x1="0"
+                            :x2="CHART_W"
+                            :y1="zeroLineY"
+                            :y2="zeroLineY"
+                            class="stroke-border"
+                            stroke-width="1"
+                            stroke-dasharray="4 4"
+                        />
+                        <!-- form band -->
+                        <path :d="tsbAreaPath" class="fill-sky-500/15" />
+                        <!-- today divider -->
+                        <line
+                            v-if="hasProjection"
+                            :x1="todayX"
+                            :x2="todayX"
+                            y1="0"
+                            :y2="CHART_H"
+                            class="stroke-muted-foreground/40"
+                            stroke-width="1"
+                            stroke-dasharray="2 3"
+                        />
+                        <!-- fitness / fatigue history -->
+                        <path
+                            :d="atlHistoryPath"
+                            fill="none"
+                            class="stroke-amber-500"
+                            stroke-width="2"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            :d="ctlHistoryPath"
+                            fill="none"
+                            class="stroke-primary"
+                            stroke-width="2.5"
+                            stroke-linejoin="round"
+                        />
+                        <!-- projection -->
+                        <path
+                            v-if="hasProjection"
+                            :d="atlProjectionPath"
+                            fill="none"
+                            class="stroke-amber-500/60"
+                            stroke-width="2"
+                            stroke-dasharray="5 4"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            v-if="hasProjection"
+                            :d="ctlProjectionPath"
+                            fill="none"
+                            class="stroke-primary/60"
+                            stroke-width="2.5"
+                            stroke-dasharray="5 4"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                    <div
+                        class="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground"
+                    >
+                        <span class="flex items-center gap-1.5"
+                            ><i class="h-0.5 w-4 rounded bg-primary"></i
+                            >Fitness</span
+                        >
+                        <span class="flex items-center gap-1.5"
+                            ><i class="h-0.5 w-4 rounded bg-amber-500"></i
+                            >Fatigue</span
+                        >
+                        <span class="flex items-center gap-1.5"
+                            ><i class="size-2 rounded-sm bg-sky-500/40"></i
+                            >Form</span
+                        >
+                    </div>
+                </div>
+                <p
+                    v-else
+                    class="py-10 text-center text-sm text-muted-foreground"
+                >
+                    Not enough history yet. Sync a few more days of activity to
+                    see your fitness curve.
+                </p>
+            </section>
 
             <div class="grid gap-4 lg:grid-cols-3">
                 <!-- Recent -->
