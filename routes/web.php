@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GoalController;
+use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\LifeEventController;
 use App\Http\Controllers\PacingController;
 use App\Http\Controllers\PlanController;
@@ -22,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('activities/{activity}', [ActivityController::class, 'show'])->name('activities.show');
 
     Route::get('records', [RecordsController::class, 'index'])->name('records.index');
+    Route::get('leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard.index');
 
     Route::get('wellness', [WellnessController::class, 'index'])->name('wellness.index');
     Route::post('life-events', [LifeEventController::class, 'store'])->name('life-events.store');

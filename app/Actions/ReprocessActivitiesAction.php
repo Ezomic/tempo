@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Garmin\FitParser;
 use App\Services\Garmin\StreamBuilder;
 use App\Services\Garmin\TrimpCalculator;
+use App\Services\Routing\RouteSignature;
 use App\Services\Training\AerobicDecouplingAnalyzer;
 use App\Services\Training\CardiacCostAnalyzer;
 use App\Services\Training\EfficiencyFactorAnalyzer;
@@ -36,6 +37,7 @@ class ReprocessActivitiesAction
         private readonly AerobicDecouplingAnalyzer $decoupling,
         private readonly EfficiencyFactorAnalyzer $efficiency,
         private readonly CardiacCostAnalyzer $cardiac,
+        private readonly RouteSignature $routeSignature,
     ) {}
 
     /**
@@ -122,6 +124,10 @@ class ReprocessActivitiesAction
             $cardiac = $this->cardiac->analyze($parsed->hrSamples, $parsed->speedSamples);
             $attributes['cardiac_cost'] = $cardiac['cardiac_cost'] ?? null;
             $attributes['hr_drift'] = $cardiac['hr_drift'] ?? null;
+        }
+
+        if ($parsed->positions !== []) {
+            $attributes['route_key'] = $this->routeSignature->forPositions($parsed->positions, $activity->distance_m);
         }
 
         $streamsPath = "garmin/streams/{$activity->user_id}/{$activity->external_id}.json";
