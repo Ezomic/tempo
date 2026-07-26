@@ -33,6 +33,7 @@ const props = defineProps<{
     workoutTypeOptions: WorkoutTypeOption[];
     routingConfigured: boolean;
     homeSet: boolean;
+    garminConnected: boolean;
 }>();
 
 defineOptions({
@@ -45,6 +46,9 @@ const page = usePage();
 const status = computed(() => page.props.status as string | undefined);
 const pushError = computed(
     () => (page.props.errors as Record<string, string>)?.push,
+);
+const watchError = computed(
+    () => (page.props.errors as Record<string, string>)?.watch,
 );
 
 const chipClasses: Record<string, string> = {
@@ -148,6 +152,9 @@ function stepLine(step: WorkoutStep): string {
         </div>
         <div v-if="pushError" class="text-sm text-destructive">
             {{ pushError }}
+        </div>
+        <div v-if="watchError" class="text-sm text-destructive">
+            {{ watchError }}
         </div>
 
         <!-- Intensity legend -->
@@ -507,6 +514,28 @@ function stepLine(step: WorkoutStep): string {
                                     :disabled="processing || !chronosConfigured"
                                 >
                                     Push to calendar
+                                </Button>
+                            </Form>
+                            <span
+                                v-if="workout.on_watch"
+                                class="text-sm text-emerald-600 dark:text-emerald-400"
+                            >
+                                On your watch
+                            </span>
+                            <Form
+                                v-else
+                                v-bind="
+                                    PlanController.pushToWatch.form(workout.id)
+                                "
+                                v-slot="{ processing }"
+                            >
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="processing || !garminConnected"
+                                >
+                                    Send to watch
                                 </Button>
                             </Form>
                             <Form

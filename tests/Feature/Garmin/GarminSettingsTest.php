@@ -49,6 +49,11 @@ function stubClient(LoginResult $loginResult): GarminClient
         {
             return WellnessSnapshot::fromSidecar(['date' => $date->toDateString()]);
         }
+
+        public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string
+        {
+            return '1';
+        }
     };
 }
 
@@ -157,6 +162,11 @@ it('surfaces a generic error instead of a 500 when Garmin sign-in fails', functi
         public function wellness(GarminConnection $connection, CarbonImmutable $date): WellnessSnapshot
         {
             return WellnessSnapshot::fromSidecar(['date' => $date->toDateString()]);
+        }
+
+        public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string
+        {
+            return '1';
         }
     };
     $this->app->instance(GarminClient::class, $throwing);

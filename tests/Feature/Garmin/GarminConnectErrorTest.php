@@ -60,6 +60,11 @@ function throwingGarminClient(Throwable $e): GarminClient
         {
             return WellnessSnapshot::fromSidecar(['date' => $date->toDateString()]);
         }
+
+        public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string
+        {
+            throw $this->e;
+        }
     };
 }
 
