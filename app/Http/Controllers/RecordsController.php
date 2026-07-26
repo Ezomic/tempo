@@ -8,6 +8,7 @@ use App\Enums\Sport;
 use App\Models\MeanMaxEffort;
 use App\Models\PersonalRecord;
 use App\Models\User;
+use App\Services\Training\ThresholdTrendService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,7 +16,7 @@ use Inertia\Response;
 
 class RecordsController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ThresholdTrendService $threshold): Response
     {
         $user = $request->user();
         $sport = $request->string('sport')->toString() === 'bike' ? Sport::Bike : Sport::Run;
@@ -25,6 +26,7 @@ class RecordsController extends Controller
             'meanMax' => $this->meanMax($user, $sport),
             'sport' => $sport->value,
             'availableSports' => $this->availableSports($user),
+            'fitnessMarkers' => $threshold->trend($user, CarbonImmutable::now(), 16),
         ]);
     }
 
