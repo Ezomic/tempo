@@ -130,6 +130,13 @@ interface TodayWeather {
     reasons: string[];
 }
 
+interface RacePrediction {
+    distance_m: number;
+    label: string;
+    seconds: number;
+    source: string;
+}
+
 interface AdherenceWeek {
     week_start: string;
     total: number;
@@ -153,6 +160,7 @@ const props = defineProps<{
     weekly: Week[];
     adherence: AdherenceWeek[];
     recentActivities: Activity[];
+    racePredictions: RacePrediction[];
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -335,6 +343,16 @@ function weekLabel(iso: string): string {
     const d = new Date(iso);
 
     return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+function raceTime(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.round(seconds % 60);
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+
+    return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
 function km(m: number | null): string {
@@ -1065,6 +1083,43 @@ function duration(seconds: number | null): string {
                 >
                     No heart-rate zone data yet.
                 </p>
+            </section>
+
+            <!-- Race predictions -->
+            <section
+                v-if="racePredictions.length"
+                class="rounded-xl border bg-card p-5"
+            >
+                <div class="mb-4">
+                    <h2 class="text-sm font-bold">Race predictor</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Estimated finishes from your mean-max curve
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div
+                        v-for="race in racePredictions"
+                        :key="race.distance_m"
+                        class="rounded-lg border bg-background p-3 text-center"
+                    >
+                        <div class="text-xs text-muted-foreground">
+                            {{ race.label }}
+                        </div>
+                        <div class="mt-1 text-lg font-bold tabular-nums">
+                            {{ raceTime(race.seconds) }}
+                        </div>
+                        <div
+                            class="mt-0.5 text-[10px] tracking-wide uppercase"
+                            :class="
+                                race.source === 'measured'
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground'
+                            "
+                        >
+                            {{ race.source }}
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Plan adherence -->

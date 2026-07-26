@@ -12,6 +12,7 @@ use App\Services\Training\AdaptivePlanService;
 use App\Services\Training\AdherenceService;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\LoadGuardrailService;
+use App\Services\Training\RacePredictorService;
 use App\Services\Training\ReadinessService;
 use App\Services\Training\TrainingLoadService;
 use App\Services\Training\ZoneDistributionService;
@@ -33,6 +34,7 @@ class DashboardController extends Controller
         private readonly AdaptivePlanService $adaptive,
         private readonly AdherenceService $adherence,
         private readonly WeatherService $weather,
+        private readonly RacePredictorService $predictor,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -59,6 +61,7 @@ class DashboardController extends Controller
             'weekly' => $this->load->weeklyBySport($user, $today, 8),
             'adherence' => $this->adherence->weekly($user, $today, 4),
             'recentActivities' => $this->recentActivities($user),
+            'racePredictions' => $this->predictor->predictions($user),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
             'todayWeather' => $todayPlan !== null
