@@ -5,6 +5,7 @@ import {
     BookOpen,
     CalendarDays,
     FolderGit2,
+    Gauge,
     LayoutGrid,
     Target,
     Trophy,
@@ -25,6 +26,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as activitiesIndex } from '@/routes/activities';
 import { index as goalsIndex } from '@/routes/goals';
+import { index as pacingIndex } from '@/routes/pacing';
 import { index as planIndex } from '@/routes/plan';
 import { index as recordsIndex } from '@/routes/records';
 import type { NavItem } from '@/types';
@@ -54,6 +56,11 @@ const mainNavItems: NavItem[] = [
         title: 'Goals',
         href: goalsIndex(),
         icon: Target,
+    },
+    {
+        title: 'Pacing',
+        href: pacingIndex(),
+        icon: Gauge,
     },
 ];
 
