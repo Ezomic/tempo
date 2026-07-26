@@ -4,6 +4,7 @@ import {
     Activity,
     BookOpen,
     CalendarDays,
+    Dumbbell,
     FolderGit2,
     Gauge,
     HeartPulse,
@@ -31,6 +32,7 @@ import { index as pacingIndex } from '@/routes/pacing';
 import { index as planIndex } from '@/routes/plan';
 import { index as recordsIndex } from '@/routes/records';
 import { index as wellnessIndex } from '@/routes/wellness';
+import { index as workoutsIndex } from '@/routes/workouts';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -48,6 +50,11 @@ const mainNavItems: NavItem[] = [
         title: 'Plan',
         href: planIndex(),
         icon: CalendarDays,
+    },
+    {
+        title: 'Workouts',
+        href: workoutsIndex(),
+        icon: Dumbbell,
     },
     {
         title: 'Records',
