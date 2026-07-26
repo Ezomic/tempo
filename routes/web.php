@@ -7,6 +7,7 @@ use App\Http\Controllers\PacingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\RecordsController;
 use App\Http\Controllers\RouteController;
+use App\Http\Controllers\WellnessController;
 use App\Http\Controllers\ZoneCalibrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('activities/{activity}', [ActivityController::class, 'show'])->name('activities.show');
 
     Route::get('records', [RecordsController::class, 'index'])->name('records.index');
+
+    Route::get('wellness', [WellnessController::class, 'index'])->name('wellness.index');
 
     Route::get('goals', [GoalController::class, 'index'])->name('goals.index');
     Route::post('goals', [GoalController::class, 'store'])->name('goals.store');
