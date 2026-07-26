@@ -4,12 +4,28 @@ declare(strict_types=1);
 
 namespace App\Services\Garmin;
 
+use App\Enums\Intensity;
 use App\Enums\Sport;
 use App\Models\PlannedWorkout;
 use App\Models\PlannedWorkoutStep;
 
 class GarminWorkoutBuilder
 {
+    /**
+     * Fixed beginner running pace per intensity, in seconds per km (the target
+     * centre). Deliberately gentle and history-independent, so a new runner gets
+     * a sensible target from day one. A +/- window is applied to form the range.
+     */
+    private const RUN_PACE_SEC_PER_KM = [
+        'recovery' => 480,
+        'easy' => 440,
+        'steady' => 390,
+        'hard' => 345,
+        'max' => 310,
+    ];
+
+    private const PACE_WINDOW_SEC = 20;
+
     /**
      * Translate a planned workout into the sidecar's structured-workout body.
      *
@@ -51,6 +67,11 @@ class GarminWorkoutBuilder
             'description' => $step->label ?? ($sport === Sport::Bike ? 'Ride' : 'Jog'),
         ];
 
+        // Pace targets only make sense running; MTB pace varies too much by terrain.
+        if ($sport === Sport::Run) {
+            $work += $this->runPaceTarget($step->intensity);
+        }
+
         if ($step->repeat > 1) {
             $inner = [$work];
             if ($hasRecovery) {
@@ -81,6 +102,23 @@ class GarminWorkoutBuilder
             'type' => 'recovery',
             'seconds' => (int) $step->recovery_min * 60,
             'description' => $sport === Sport::Bike ? 'Easy spin' : 'Walk',
+        ];
+    }
+
+    /**
+     * A pace-zone target as a min/max speed in m/s, from the fixed beginner table.
+     *
+     * @return array{target_pace_low: float, target_pace_high: float}
+     */
+    private function runPaceTarget(Intensity $intensity): array
+    {
+        $centre = self::RUN_PACE_SEC_PER_KM[$intensity->value];
+        $slow = $centre + self::PACE_WINDOW_SEC;
+        $fast = $centre - self::PACE_WINDOW_SEC;
+
+        return [
+            'target_pace_low' => round(1000 / $slow, 3),
+            'target_pace_high' => round(1000 / $fast, 3),
         ];
     }
 }

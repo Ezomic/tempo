@@ -267,6 +267,9 @@ class WorkoutStepBody(BaseModel):
     description: str | None = None
     iterations: int | None = None
     steps: list["WorkoutStepBody"] | None = None
+    # Pace-zone target as speed bounds in m/s (both set together, or neither).
+    target_pace_low: float | None = None
+    target_pace_high: float | None = None
 
 
 class WorkoutBody(BaseModel):
@@ -306,6 +309,15 @@ def build_workout_steps(
         step = factory(float(item.seconds or 0), next(order))
         if item.description:
             step.description = item.description
+        if item.target_pace_low is not None and item.target_pace_high is not None:
+            step.targetType = {
+                "workoutTargetTypeId": 6,
+                "workoutTargetTypeKey": "pace.zone",
+                "displayOrder": 6,
+            }
+            # Garmin pace targets are speed bounds in m/s.
+            step.targetValueOne = item.target_pace_low
+            step.targetValueTwo = item.target_pace_high
         built.append(step)
 
     return built
