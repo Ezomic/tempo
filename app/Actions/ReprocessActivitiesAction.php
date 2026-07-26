@@ -106,6 +106,10 @@ class ReprocessActivitiesAction
             $attributes['mean_max'] = $this->effort->meanMax($parsed->speedSamples);
         }
 
+        if ($parsed->laps !== []) {
+            $attributes['laps'] = $parsed->laps;
+        }
+
         $streamsPath = "garmin/streams/{$activity->user_id}/{$activity->external_id}.json";
         Storage::disk('local')->put($streamsPath, (string) json_encode($this->streamBuilder->build($parsed)));
         $attributes['streams_path'] = $streamsPath;

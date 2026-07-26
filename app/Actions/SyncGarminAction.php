@@ -124,6 +124,10 @@ class SyncGarminAction
                 $attributes['mean_max'] = $this->effort->meanMax($parsed->speedSamples);
             }
 
+            if ($parsed->laps !== []) {
+                $attributes['laps'] = $parsed->laps;
+            }
+
             $streamsPath = $this->archiveStreams($connection, $summary->externalId, $parsed);
             if ($streamsPath !== null) {
                 $attributes['streams_path'] = $streamsPath;

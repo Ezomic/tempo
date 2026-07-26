@@ -30,7 +30,46 @@ interface Streams {
     lng: number[] | null;
 }
 
-const props = defineProps<{ activity: Activity; streams: Streams | null }>();
+interface Rep {
+    type: string;
+    duration_s: number;
+    distance_m: number;
+    pace: string;
+    avg_hr: number | null;
+    verdict: string | null;
+}
+
+interface Intervals {
+    structured: boolean;
+    target_pace: string | null;
+    counts: { work: number; hit: number; slightly_off: number; missed: number };
+    reps: Rep[];
+}
+
+const props = defineProps<{
+    activity: Activity;
+    streams: Streams | null;
+    intervals: Intervals | null;
+}>();
+
+const verdictStyle: Record<string, { label: string; class: string }> = {
+    hit: { label: 'Hit', class: 'bg-primary/15 text-primary' },
+    slightly_off: {
+        label: 'Slightly off',
+        class: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+    },
+    missed: {
+        label: 'Missed',
+        class: 'bg-red-500/15 text-red-600 dark:text-red-400',
+    },
+};
+
+function repDuration(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+
+    return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
+}
 
 defineOptions({
     layout: {
@@ -297,5 +336,60 @@ const stats = computed(() => [
                 </CardContent>
             </Card>
         </div>
+
+        <!-- Intervals -->
+        <Card v-if="intervals">
+            <CardHeader>
+                <CardTitle class="flex items-center justify-between">
+                    <span>{{
+                        intervals.structured ? 'Intervals' : 'Laps'
+                    }}</span>
+                    <span
+                        v-if="intervals.structured && intervals.target_pace"
+                        class="text-xs font-normal text-muted-foreground"
+                    >
+                        {{ intervals.counts.hit }}/{{
+                            intervals.counts.work
+                        }}
+                        on target · {{ intervals.target_pace }}
+                    </span>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ul class="divide-y text-sm">
+                    <li
+                        v-for="(rep, i) in intervals.reps"
+                        :key="i"
+                        class="grid grid-cols-[24px_1fr_auto_auto_auto] items-center gap-3 py-2"
+                    >
+                        <span
+                            class="size-2.5 rounded-full"
+                            :class="
+                                rep.type === 'work'
+                                    ? 'bg-primary'
+                                    : 'bg-muted-foreground/40'
+                            "
+                        />
+                        <span class="text-muted-foreground">
+                            {{ rep.type === 'work' ? 'Work' : 'Recovery' }}
+                            {{ (rep.distance_m / 1000).toFixed(2) }} km
+                        </span>
+                        <span class="tabular-nums">{{
+                            repDuration(rep.duration_s)
+                        }}</span>
+                        <span class="text-muted-foreground tabular-nums">{{
+                            rep.pace
+                        }}</span>
+                        <span
+                            v-if="rep.verdict"
+                            class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                            :class="verdictStyle[rep.verdict]?.class"
+                            >{{ verdictStyle[rep.verdict]?.label }}</span
+                        >
+                        <span v-else />
+                    </li>
+                </ul>
+            </CardContent>
+        </Card>
     </div>
 </template>
