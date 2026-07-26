@@ -118,6 +118,17 @@ interface AdaptiveSuggestion {
     reason: string;
 }
 
+interface AdherenceWeek {
+    week_start: string;
+    total: number;
+    completed: number;
+    modified: number;
+    moved: number;
+    skipped: number;
+    adherence_pct: number | null;
+    slipped: { date: string; title: string }[];
+}
+
 const props = defineProps<{
     hasData: boolean;
     garminConnected: boolean;
@@ -128,10 +139,17 @@ const props = defineProps<{
     fitnessCurve: FitnessCurve;
     zones: Zones;
     weekly: Week[];
+    adherence: AdherenceWeek[];
     recentActivities: Activity[];
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
 }>();
+
+const currentAdherence = computed<AdherenceWeek | null>(
+    () => props.adherence[props.adherence.length - 1] ?? null,
+);
+
+const hasAdherence = computed(() => props.adherence.some((w) => w.total > 0));
 
 const suggestionDismissed = ref(false);
 
@@ -264,6 +282,14 @@ const polarizationVerdict = computed<{ label: string; class: string }>(() => {
 
 function polarPct(value: number | null): string {
     return value === null ? '0%' : `${value}%`;
+}
+
+function adherenceColor(pct: number | null): string {
+    if (pct === null) {
+        return 'bg-muted';
+    }
+
+    return pct >= 80 ? 'bg-primary' : pct >= 50 ? 'bg-amber-400' : 'bg-red-500';
 }
 
 const maxWeekly = computed(() =>
@@ -1025,6 +1051,83 @@ function duration(seconds: number | null): string {
                     class="py-10 text-center text-sm text-muted-foreground"
                 >
                     No heart-rate zone data yet.
+                </p>
+            </section>
+
+            <!-- Plan adherence -->
+            <section class="rounded-xl border bg-card p-5">
+                <div
+                    class="mb-4 flex flex-wrap items-baseline justify-between gap-2"
+                >
+                    <div>
+                        <h2 class="text-sm font-bold">Plan adherence</h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            Planned vs actual · last 4 weeks
+                        </p>
+                    </div>
+                    <span
+                        v-if="currentAdherence && currentAdherence.total > 0"
+                        class="text-2xl font-extrabold tracking-tight tabular-nums"
+                    >
+                        {{ currentAdherence.adherence_pct }}%
+                    </span>
+                </div>
+
+                <template v-if="hasAdherence">
+                    <div class="flex h-24 items-end gap-3">
+                        <div
+                            v-for="week in adherence"
+                            :key="week.week_start"
+                            class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                        >
+                            <div
+                                class="flex w-full flex-1 flex-col justify-end overflow-hidden rounded-md bg-muted/40"
+                                :title="`${week.completed} done · ${week.modified} modified · ${week.moved} moved · ${week.skipped} skipped`"
+                            >
+                                <span
+                                    class="w-full rounded-md"
+                                    :class="adherenceColor(week.adherence_pct)"
+                                    :style="{
+                                        height: `${week.adherence_pct ?? 0}%`,
+                                    }"
+                                />
+                            </div>
+                            <span class="text-[11px] text-muted-foreground">{{
+                                weekLabel(week.week_start)
+                            }}</span>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="
+                            currentAdherence && currentAdherence.slipped.length
+                        "
+                        class="mt-4 border-t pt-3"
+                    >
+                        <h3
+                            class="mb-1.5 text-xs font-semibold text-muted-foreground"
+                        >
+                            Missed this week
+                        </h3>
+                        <ul class="space-y-1 text-sm">
+                            <li
+                                v-for="item in currentAdherence.slipped"
+                                :key="item.date + item.title"
+                                class="flex items-center justify-between"
+                            >
+                                <span>{{ item.title }}</span>
+                                <span class="text-xs text-muted-foreground">{{
+                                    weekLabel(item.date)
+                                }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </template>
+                <p
+                    v-else
+                    class="py-10 text-center text-sm text-muted-foreground"
+                >
+                    No planned sessions yet.
                 </p>
             </section>
 
