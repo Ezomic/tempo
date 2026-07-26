@@ -270,6 +270,8 @@ class WorkoutStepBody(BaseModel):
     # Pace-zone target as speed bounds in m/s (both set together, or neither).
     target_pace_low: float | None = None
     target_pace_high: float | None = None
+    # Heart-rate-zone target (1-5), using the rider's own Garmin HR zones.
+    target_hr_zone: int | None = None
 
 
 class WorkoutBody(BaseModel):
@@ -318,6 +320,13 @@ def build_workout_steps(
             # Garmin pace targets are speed bounds in m/s.
             step.targetValueOne = item.target_pace_low
             step.targetValueTwo = item.target_pace_high
+        elif item.target_hr_zone is not None:
+            step.targetType = {
+                "workoutTargetTypeId": 4,
+                "workoutTargetTypeKey": "heart.rate.zone",
+                "displayOrder": 4,
+            }
+            step.zoneNumber = item.target_hr_zone
         built.append(step)
 
     return built

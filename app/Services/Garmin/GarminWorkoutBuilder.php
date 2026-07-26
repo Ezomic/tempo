@@ -67,8 +67,11 @@ class GarminWorkoutBuilder
             'description' => $step->label ?? ($sport === Sport::Bike ? 'Ride' : 'Jog'),
         ];
 
-        // Pace targets only make sense running; MTB pace varies too much by terrain.
-        if ($sport === Sport::Run) {
+        // Pace targets only make sense running; MTB pace varies too much by
+        // terrain, so bikes get an effort-based heart-rate zone target instead.
+        if ($sport === Sport::Bike) {
+            $work['target_hr_zone'] = $step->intensity->zone();
+        } else {
             $work += $this->runPaceTarget($step->intensity);
         }
 
@@ -98,11 +101,19 @@ class GarminWorkoutBuilder
      */
     private function recoveryEntry(PlannedWorkoutStep $step, Sport $sport): array
     {
-        return [
+        $entry = [
             'type' => 'recovery',
             'seconds' => (int) $step->recovery_min * 60,
             'description' => $sport === Sport::Bike ? 'Easy spin' : 'Walk',
         ];
+
+        // An easy spin is still pedalling, so an HR zone target is useful; a walk
+        // break is not, so runs keep recoveries untargeted.
+        if ($sport === Sport::Bike) {
+            $entry['target_hr_zone'] = $step->recovery_intensity?->zone() ?? 1;
+        }
+
+        return $entry;
     }
 
     /**

@@ -72,7 +72,7 @@ it('maps steps into intervals and a repeat group, keeping labels', function () {
         ->and($repeat['steps'][0]['target_pace_low'])->toBeLessThan($repeat['steps'][0]['target_pace_high']);
 });
 
-it('gives no pace target to bike intervals', function () {
+it('gives bike intervals an HR zone target, not a pace target', function () {
     $user = User::factory()->create();
     $workout = $user->plannedWorkouts()->create([
         'date' => '2026-07-30', 'sport' => Sport::Bike, 'title' => 'Ride', 'duration_min' => 30,
@@ -81,7 +81,8 @@ it('gives no pace target to bike intervals', function () {
 
     $steps = app(GarminWorkoutBuilder::class)->build($workout->load('steps'))['steps'];
 
-    expect($steps[0])->not->toHaveKey('target_pace_low');
+    expect($steps[0])->not->toHaveKey('target_pace_low')
+        ->and($steps[0]['target_hr_zone'])->toBe(2);
 });
 
 it('maps a single unlabelled block to one interval, not a warmup', function () {
