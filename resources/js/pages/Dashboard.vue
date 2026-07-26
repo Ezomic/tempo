@@ -10,6 +10,7 @@ import {
     downgrade,
     generate as planGenerate,
 } from '@/routes/plan';
+import { calibrate as zonesCalibrate } from '@/routes/zones';
 
 interface Contributor {
     key: string;
@@ -154,6 +155,14 @@ interface CostPoint {
     cost: number;
 }
 
+interface ZoneCalibration {
+    estimated_lthr: number;
+    current_lthr: number | null;
+    proposed_boundaries: number[];
+    current_boundaries: number[] | null;
+    delta: number;
+}
+
 interface TaperFactor {
     key: string;
     label: string;
@@ -197,6 +206,7 @@ const props = defineProps<{
     taper: Taper | null;
     efficiencyTrend: Record<string, EfPoint[]>;
     cardiacCostTrend: Record<string, CostPoint[]>;
+    zoneCalibration: ZoneCalibration | null;
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -220,6 +230,10 @@ function acceptDowngrade(): void {
         {},
         { preserveScroll: true },
     );
+}
+
+function applyCalibration(): void {
+    router.post(zonesCalibrate().url, {}, { preserveScroll: true });
 }
 
 defineOptions({
@@ -1282,6 +1296,38 @@ function duration(seconds: number | null): string {
                         </span>
                     </li>
                 </ul>
+            </section>
+
+            <!-- HR zone calibration suggestion -->
+            <section
+                v-if="zoneCalibration"
+                class="rounded-xl border border-amber-500/40 bg-amber-500/10 p-5"
+            >
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold">Your zones look off</h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            Recent hard efforts suggest a threshold HR of
+                            <span class="font-semibold">{{
+                                zoneCalibration.estimated_lthr
+                            }}</span>
+                            bpm<span v-if="zoneCalibration.current_lthr">
+                                (currently
+                                {{ zoneCalibration.current_lthr }})</span
+                            >. New zones:
+                            {{
+                                zoneCalibration.proposed_boundaries.join(' · ')
+                            }}
+                            bpm.
+                        </p>
+                    </div>
+                    <button
+                        class="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+                        @click="applyCalibration"
+                    >
+                        Update zones
+                    </button>
+                </div>
             </section>
 
             <!-- Efficiency factor trend -->

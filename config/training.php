@@ -96,6 +96,16 @@ return [
     ],
 
     /*
+    | HR zone auto-calibration. LTHR is estimated from the hardest sustained
+    | effort in the lookback window; a suggestion only appears when it differs
+    | from the stored value by at least calibration_min_delta_bpm.
+    */
+    'zones' => [
+        'calibration_min_delta_bpm' => 5,
+        'calibration_lookback_days' => 120,
+    ],
+
+    /*
     | Forecast horizon (days) and the heat/wind thresholds that warn on an
     | outdoor session.
     */
