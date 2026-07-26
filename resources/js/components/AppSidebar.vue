@@ -9,6 +9,7 @@ import {
     Gauge,
     HeartPulse,
     LayoutGrid,
+    Medal,
     Target,
     Trophy,
 } from '@lucide/vue';
@@ -28,6 +29,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as activitiesIndex } from '@/routes/activities';
 import { index as goalsIndex } from '@/routes/goals';
+import { index as leaderboardIndex } from '@/routes/leaderboard';
 import { index as pacingIndex } from '@/routes/pacing';
 import { index as planIndex } from '@/routes/plan';
 import { index as recordsIndex } from '@/routes/records';
@@ -60,6 +62,11 @@ const mainNavItems: NavItem[] = [
         title: 'Records',
         href: recordsIndex(),
         icon: Trophy,
+    },
+    {
+        title: 'Leaderboard',
+        href: leaderboardIndex(),
+        icon: Medal,
     },
     {
         title: 'Goals',

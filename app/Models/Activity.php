@@ -33,6 +33,7 @@ use Illuminate\Support\Carbon;
  * @property array<int, int>|null $best_efforts
  * @property array<int, float>|null $mean_max
  * @property list<array{duration_s: int, distance_m: float, avg_speed_mps: float, avg_hr: int|null}>|null $laps
+ * @property string|null $route_key
  * @property string|null $fit_path
  * @property string|null $streams_path
  * @property array<string, mixed>|null $raw_summary
@@ -63,6 +64,7 @@ use Illuminate\Support\Carbon;
     'best_efforts',
     'mean_max',
     'laps',
+    'route_key',
     'fit_path',
     'streams_path',
     'raw_summary',
