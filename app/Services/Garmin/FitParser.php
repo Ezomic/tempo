@@ -30,7 +30,43 @@ class FitParser
                 $record['position_lat'] ?? [],
                 $record['position_long'] ?? [],
             ),
+            laps: $this->laps(is_array($fit->data_mesgs['lap'] ?? null) ? $fit->data_mesgs['lap'] : []),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $lap
+     * @return list<array{duration_s: int, distance_m: float, avg_speed_mps: float, avg_hr: int|null}>
+     */
+    private function laps(array $lap): array
+    {
+        $durations = array_values($this->asArray($lap['total_timer_time'] ?? $lap['total_elapsed_time'] ?? []));
+        $distances = array_values($this->asArray($lap['total_distance'] ?? []));
+        $speeds = array_values($this->asArray($lap['avg_speed'] ?? []));
+        $heartRates = array_values($this->asArray($lap['avg_heart_rate'] ?? []));
+
+        $laps = [];
+        foreach ($durations as $i => $duration) {
+            if (! is_numeric($duration) || (int) $duration <= 0) {
+                continue;
+            }
+
+            $seconds = (int) $duration;
+            $distance = is_numeric($distances[$i] ?? null) ? (float) $distances[$i] : 0.0;
+            $speed = is_numeric($speeds[$i] ?? null)
+                ? (float) $speeds[$i]
+                : $distance / $seconds;
+            $hr = is_numeric($heartRates[$i] ?? null) ? (int) $heartRates[$i] : null;
+
+            $laps[] = [
+                'duration_s' => $seconds,
+                'distance_m' => round($distance, 1),
+                'avg_speed_mps' => round($speed, 3),
+                'avg_hr' => $hr,
+            ];
+        }
+
+        return $laps;
     }
 
     /**
