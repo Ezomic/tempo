@@ -9,6 +9,7 @@ import {
     index as planIndex,
     downgrade,
     generate as planGenerate,
+    reschedule as planReschedule,
 } from '@/routes/plan';
 import { calibrate as zonesCalibrate } from '@/routes/zones';
 
@@ -168,6 +169,12 @@ interface Recommendation {
     factors: { label: string; detail: string }[];
 }
 
+interface Reschedule {
+    missed: { id: number; title: string; date: string };
+    proposed_date: string;
+    reason: string;
+}
+
 interface ZoneCalibration {
     estimated_lthr: number;
     current_lthr: number | null;
@@ -222,6 +229,7 @@ const props = defineProps<{
     zoneCalibration: ZoneCalibration | null;
     overtraining: Overtraining | null;
     recommendation: Recommendation | null;
+    reschedule: Reschedule | null;
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -249,6 +257,10 @@ function acceptDowngrade(): void {
 
 function applyCalibration(): void {
     router.post(zonesCalibrate().url, {}, { preserveScroll: true });
+}
+
+function acceptReschedule(): void {
+    router.post(planReschedule().url, {}, { preserveScroll: true });
 }
 
 function easeFromRecommendation(): void {
@@ -1443,6 +1455,27 @@ function duration(seconds: number | null): string {
                         </span>
                     </li>
                 </ul>
+            </section>
+
+            <!-- Missed key session reschedule -->
+            <section
+                v-if="reschedule"
+                class="rounded-xl border border-sky-500/40 bg-sky-500/10 p-5"
+            >
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold">Reschedule this week</h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            {{ reschedule.reason }}
+                        </p>
+                    </div>
+                    <button
+                        class="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+                        @click="acceptReschedule"
+                    >
+                        Move to {{ reschedule.proposed_date }}
+                    </button>
+                </div>
             </section>
 
             <!-- HR zone calibration suggestion -->

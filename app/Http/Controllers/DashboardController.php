@@ -11,6 +11,7 @@ use App\Models\TrainingGoal;
 use App\Models\User;
 use App\Services\Training\AdaptivePlanService;
 use App\Services\Training\AdherenceService;
+use App\Services\Training\AutoRescheduleService;
 use App\Services\Training\CardiacCostService;
 use App\Services\Training\DailyRecommendationService;
 use App\Services\Training\EfficiencyFactorService;
@@ -50,6 +51,7 @@ class DashboardController extends Controller
         private readonly ZoneCalibrationService $zoneCalibration,
         private readonly OvertrainingWatchService $overtraining,
         private readonly DailyRecommendationService $recommendation,
+        private readonly AutoRescheduleService $reschedule,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -84,6 +86,7 @@ class DashboardController extends Controller
             'zoneCalibration' => $this->zoneCalibration->suggestion($user, $today),
             'overtraining' => $this->overtraining->watch($user, $today),
             'recommendation' => $this->recommendation->forToday($user, $today),
+            'reschedule' => $this->reschedule->suggestion($user, $today),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
             'todayWeather' => $todayPlan !== null
