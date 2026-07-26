@@ -8,6 +8,8 @@ use App\Services\Garmin\SidecarGarminClient;
 use App\Services\Routing\OrsGeocoder;
 use App\Services\Routing\OrsRouteGenerator;
 use App\Services\Routing\RouteGenerator;
+use App\Services\Weather\OpenMeteoForecaster;
+use App\Services\Weather\WeatherForecaster;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ChronosClient::class, fn (): ChronosClient => new ChronosClient(
             baseUrl: config('services.chronos.url'),
             token: config('services.chronos.token'),
+        ));
+
+        $this->app->bind(WeatherForecaster::class, fn (): OpenMeteoForecaster => new OpenMeteoForecaster(
+            baseUrl: (string) config('services.weather.url'),
         ));
 
         $this->app->bind(RouteGenerator::class, fn (): OrsRouteGenerator => new OrsRouteGenerator(
