@@ -30,6 +30,15 @@ interface Week {
     total: number;
 }
 
+interface Guardrails {
+    acwr: number | null;
+    acwr_band: string;
+    ramp_pct: number | null;
+    ramp_band: string;
+    status: string;
+    message: string;
+}
+
 interface CurvePoint {
     date: string;
     ctl: number;
@@ -65,6 +74,7 @@ const props = defineProps<{
     garminConnected: boolean;
     readiness: Readiness | null;
     load: Load;
+    guardrails: Guardrails;
     fitnessCurve: FitnessCurve;
     weekly: Week[];
     recentActivities: Activity[];
@@ -122,6 +132,28 @@ const ratioLabel: Record<string, string> = {
     low: 'Building',
     unknown: 'Not enough data',
 };
+
+const guardrailBanner: Record<string, string> = {
+    danger: 'border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400',
+    caution:
+        'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+};
+
+const showGuardrail = computed(
+    () =>
+        props.guardrails.status === 'caution' ||
+        props.guardrails.status === 'danger',
+);
+
+const rampLabel = computed<string>(() => {
+    const ramp = props.guardrails.ramp_pct;
+
+    if (ramp === null) {
+        return '—';
+    }
+
+    return `${ramp > 0 ? '+' : ''}${ramp}%`;
+});
 
 const maxWeekly = computed(() =>
     Math.max(1, ...props.weekly.map((w) => w.total)),
@@ -435,6 +467,31 @@ function duration(seconds: number | null): string {
                         </span>
                     </div>
 
+                    <div
+                        v-if="showGuardrail"
+                        class="mb-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs"
+                        :class="guardrailBanner[guardrails.status]"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="mt-px size-4 shrink-0"
+                        >
+                            <path
+                                d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                            />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        <span class="font-medium">{{
+                            guardrails.message
+                        }}</span>
+                    </div>
+
                     <div class="grid grid-cols-3 gap-4">
                         <div>
                             <div class="text-3xl font-extrabold tracking-tight">
@@ -489,6 +546,16 @@ function duration(seconds: number | null): string {
                                 >{{ ratioLabel[load.status] }}</span
                             >
                             <span>1.3</span>
+                        </div>
+                        <div
+                            class="mt-3 flex items-center justify-between text-xs"
+                        >
+                            <span class="text-muted-foreground"
+                                >Weekly ramp</span
+                            >
+                            <span class="font-semibold tabular-nums">{{
+                                rampLabel
+                            }}</span>
                         </div>
                     </div>
 

@@ -51,6 +51,31 @@ class TrainingLoadService
     }
 
     /**
+     * Week-over-week change in acute (7-day) load as a percentage. Null when
+     * there is no prior week to compare against.
+     */
+    public function weeklyRamp(User $user, CarbonImmutable $today): ?float
+    {
+        $thisWeekStart = $today->subDays(6)->startOfDay();
+        $lastWeekStart = $today->subDays(13)->startOfDay();
+
+        $activities = $this->activitiesSince($user, $lastWeekStart, $today->endOfDay());
+
+        $current = 0.0;
+        $previous = 0.0;
+        foreach ($activities as $activity) {
+            $load = (float) ($activity->trimp ?? 0);
+            if ($activity->started_at->greaterThanOrEqualTo($thisWeekStart)) {
+                $current += $load;
+            } else {
+                $previous += $load;
+            }
+        }
+
+        return $previous > 0 ? round((($current - $previous) / $previous) * 100, 1) : null;
+    }
+
+    /**
      * Per-week TRIMP totals split by sport, oldest week first.
      *
      * @return list<array{week_start: string, run: float, bike: float, other: float, total: float}>
