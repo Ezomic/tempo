@@ -6,6 +6,7 @@ import {
     CalendarDays,
     FolderGit2,
     Gauge,
+    HeartPulse,
     LayoutGrid,
     Target,
     Trophy,
@@ -29,6 +30,7 @@ import { index as goalsIndex } from '@/routes/goals';
 import { index as pacingIndex } from '@/routes/pacing';
 import { index as planIndex } from '@/routes/plan';
 import { index as recordsIndex } from '@/routes/records';
+import { index as wellnessIndex } from '@/routes/wellness';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -61,6 +63,11 @@ const mainNavItems: NavItem[] = [
         title: 'Pacing',
         href: pacingIndex(),
         icon: Gauge,
+    },
+    {
+        title: 'Wellness',
+        href: wellnessIndex(),
+        icon: HeartPulse,
     },
 ];
 
