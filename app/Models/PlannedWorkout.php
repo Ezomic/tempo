@@ -26,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $chronos_event_id
  * @property string|null $chronos_url
  * @property Carbon|null $pushed_at
+ * @property string|null $garmin_workout_id
+ * @property Carbon|null $garmin_pushed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -44,12 +46,19 @@ use Illuminate\Support\Carbon;
     'chronos_event_id',
     'chronos_url',
     'pushed_at',
+    'garmin_workout_id',
+    'garmin_pushed_at',
 ])]
 class PlannedWorkout extends Model
 {
     public function isPushed(): bool
     {
         return $this->pushed_at !== null;
+    }
+
+    public function isOnWatch(): bool
+    {
+        return $this->garmin_pushed_at !== null;
     }
 
     public function computedDurationMin(): int
@@ -89,6 +98,7 @@ class PlannedWorkout extends Model
             'workout_type' => WorkoutType::class,
             'route_geometry' => 'array',
             'pushed_at' => 'datetime',
+            'garmin_pushed_at' => 'datetime',
         ];
     }
 }

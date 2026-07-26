@@ -88,6 +88,20 @@ final readonly class SidecarGarminClient implements GarminClient
         return WellnessSnapshot::fromSidecar($response->json());
     }
 
+    public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string
+    {
+        $response = $this->request()->post('/workouts', [
+            'connection_id' => (string) $connection->id,
+            'sport' => $workout['sport'],
+            'name' => $workout['name'],
+            'date' => $date->toDateString(),
+            'estimated_seconds' => $workout['estimated_seconds'],
+            'steps' => $workout['steps'],
+        ])->throw();
+
+        return (string) $response->json('workout_id');
+    }
+
     private function request(): PendingRequest
     {
         return Http::baseUrl($this->baseUrl)

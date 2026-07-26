@@ -41,6 +41,7 @@ export interface PlannedWorkout {
     steps: WorkoutStep[];
     pushed: boolean;
     chronos_url: string | null;
+    on_watch: boolean;
     route: SavedRoute | null;
 }
 

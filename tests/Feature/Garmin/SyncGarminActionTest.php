@@ -69,6 +69,11 @@ function fakeGarminClient(): GarminClient
                 'stress' => ['avgStressLevel' => 30],
             ]);
         }
+
+        public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string
+        {
+            return '12345';
+        }
     };
 }
 

@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreatePlannedWorkoutAction;
 use App\Actions\PushPlannedWorkoutAction;
+use App\Actions\PushWorkoutToGarminAction;
 use App\Enums\Intensity;
 use App\Enums\WorkoutType;
 use App\Http\Requests\StorePlannedWorkoutRequest;
@@ -55,6 +56,7 @@ class PlanController extends Controller
                 ])->all(),
                 'pushed' => $workout->isPushed(),
                 'chronos_url' => $workout->chronos_url,
+                'on_watch' => $workout->isOnWatch(),
                 'route' => $workout->hasRoute() ? [
                     'coordinates' => $workout->route_geometry,
                     'distance_m' => $workout->route_distance_m,
@@ -70,6 +72,7 @@ class PlanController extends Controller
             'workoutTypeOptions' => WorkoutType::options(),
             'routingConfigured' => $routes->isConfigured(),
             'homeSet' => $user->home_lat !== null && $user->home_lng !== null,
+            'garminConnected' => $user->garminConnection?->isConnected() ?? false,
         ]);
     }
 
@@ -93,6 +96,21 @@ class PlanController extends Controller
         }
 
         return back()->with('status', 'Pushed to your calendar.');
+    }
+
+    public function pushToWatch(Request $request, PlannedWorkout $plannedWorkout, PushWorkoutToGarminAction $action): RedirectResponse
+    {
+        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+
+        try {
+            $action->handle($plannedWorkout);
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['watch' => 'Could not send this workout to your watch. Check that Garmin is connected.']);
+        }
+
+        return back()->with('status', 'Sent to your watch.');
     }
 
     public function destroy(Request $request, PlannedWorkout $plannedWorkout): RedirectResponse

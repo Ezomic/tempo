@@ -27,4 +27,12 @@ interface GarminClient
     public function downloadFit(GarminConnection $connection, string $activityId): string;
 
     public function wellness(GarminConnection $connection, CarbonImmutable $date): WellnessSnapshot;
+
+    /**
+     * Upload a structured workout and schedule it on the given date. Returns the
+     * Garmin workout id.
+     *
+     * @param  array{sport: string, name: string, estimated_seconds: int, steps: array<int, array<string, mixed>>}  $workout
+     */
+    public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string;
 }

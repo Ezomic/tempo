@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('plan', [PlanController::class, 'index'])->name('plan.index');
     Route::post('plan', [PlanController::class, 'store'])->name('plan.store');
     Route::post('plan/{plannedWorkout}/push', [PlanController::class, 'push'])->name('plan.push');
+    Route::post('plan/{plannedWorkout}/watch', [PlanController::class, 'pushToWatch'])->name('plan.watch');
     Route::delete('plan/{plannedWorkout}', [PlanController::class, 'destroy'])->name('plan.destroy');
 
     Route::post('plan/{plannedWorkout}/route/suggest', [RouteController::class, 'suggest'])

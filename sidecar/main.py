@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import itertools
 import os
 import secrets
 import time
@@ -8,7 +9,7 @@ import zipfile
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
 from garminconnect import (
@@ -16,6 +17,19 @@ from garminconnect import (
     GarminConnectAuthenticationError,
     GarminConnectConnectionError,
     GarminConnectTooManyRequestsError,
+)
+from garminconnect.workout import (
+    CyclingWorkout,
+    ExecutableStep,
+    RepeatGroup,
+    RunningWorkout,
+    SportType,
+    WorkoutSegment,
+    create_cooldown_step,
+    create_interval_step,
+    create_recovery_step,
+    create_repeat_group,
+    create_warmup_step,
 )
 from pydantic import BaseModel
 
@@ -244,3 +258,95 @@ def wellness(
         "resting_hr": resting_hr,
         "stress": stress,
     }
+
+
+class WorkoutStepBody(BaseModel):
+    # "warmup" | "interval" | "recovery" | "cooldown" | "repeat"
+    type: str
+    seconds: float | None = None
+    description: str | None = None
+    iterations: int | None = None
+    steps: list["WorkoutStepBody"] | None = None
+
+
+class WorkoutBody(BaseModel):
+    connection_id: str
+    sport: str  # "running" | "cycling"
+    name: str
+    date: str  # YYYY-MM-DD; schedule_workout validates the format
+    estimated_seconds: int
+    steps: list[WorkoutStepBody]
+
+
+_STEP_FACTORIES: dict[str, Callable[[float, int], ExecutableStep]] = {
+    "warmup": create_warmup_step,
+    "interval": create_interval_step,
+    "recovery": create_recovery_step,
+    "cooldown": create_cooldown_step,
+}
+
+
+def build_workout_steps(
+    items: list[WorkoutStepBody], order: Iterator[int]
+) -> list[ExecutableStep | RepeatGroup]:
+    # Garmin expects a single flat stepOrder sequence across the whole tree, with
+    # a repeat group taking an order before its children.
+    built: list[ExecutableStep | RepeatGroup] = []
+    for item in items:
+        if item.type == "repeat":
+            group_order = next(order)
+            children = build_workout_steps(item.steps or [], order)
+            built.append(create_repeat_group(item.iterations or 1, children, group_order))
+            continue
+
+        factory = _STEP_FACTORIES.get(item.type)
+        if factory is None:
+            raise HTTPException(status_code=422, detail=f"Unknown step type: {item.type}")
+
+        step = factory(float(item.seconds or 0), next(order))
+        if item.description:
+            step.description = item.description
+        built.append(step)
+
+    return built
+
+
+@app.post("/workouts")
+def create_workout(body: WorkoutBody, _: None = Depends(require_secret)) -> dict[str, Any]:
+    if body.sport not in ("running", "cycling"):
+        raise HTTPException(status_code=422, detail="sport must be running or cycling")
+
+    client = load_client(body.connection_id)
+    steps = build_workout_steps(body.steps, itertools.count(1))
+
+    if body.sport == "running":
+        sport_type = {"sportTypeId": SportType.RUNNING, "sportTypeKey": "running"}
+        workout: RunningWorkout | CyclingWorkout = RunningWorkout(
+            workoutName=body.name[:80],
+            estimatedDurationInSecs=body.estimated_seconds,
+            workoutSegments=[
+                WorkoutSegment(segmentOrder=1, sportType=sport_type, workoutSteps=steps)
+            ],
+        )
+        upload = client.upload_running_workout
+    else:
+        sport_type = {"sportTypeId": SportType.CYCLING, "sportTypeKey": "cycling"}
+        workout = CyclingWorkout(
+            workoutName=body.name[:80],
+            estimatedDurationInSecs=body.estimated_seconds,
+            workoutSegments=[
+                WorkoutSegment(segmentOrder=1, sportType=sport_type, workoutSteps=steps)
+            ],
+        )
+        upload = client.upload_cycling_workout
+
+    try:
+        result = upload(workout)
+        workout_id = result["workoutId"]
+        client.schedule_workout(workout_id, body.date)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise garmin_http_error(exc) from exc
+
+    return {"workout_id": workout_id}
