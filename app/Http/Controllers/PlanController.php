@@ -149,7 +149,7 @@ class PlanController extends Controller
         ]);
     }
 
-    public function generate(GeneratePlanRequest $request, GenerateTrainingPlanAction $generator): RedirectResponse
+    public function generate(GeneratePlanRequest $request, GenerateTrainingPlanAction $generator, ChronosClient $chronos): RedirectResponse
     {
         $user = $request->user();
         $today = CarbonImmutable::now();
@@ -158,7 +158,8 @@ class PlanController extends Controller
         $sessionsPerWeek = (int) $request->validated('sessions_per_week');
         $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0);
 
-        $specs = $generator->handle($today, $raceDate, $sessionsPerWeek, $currentCtl);
+        $busyDates = $chronos->busyDays($today->toDateString(), $raceDate->toDateString());
+        $specs = $generator->handle($today, $raceDate, $sessionsPerWeek, $currentCtl, $busyDates);
 
         // Replace previously generated future sessions, but keep manual ones.
         $user->plannedWorkouts()

@@ -6,6 +6,7 @@ namespace App\Services\Chronos;
 
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Throwable;
 
 final readonly class ChronosClient
 {
@@ -104,5 +105,36 @@ final readonly class ChronosClient
             ->timeout(15)
             ->delete("/events/{$eventId}")
             ->throw();
+    }
+
+    /**
+     * Dates (Y-m-d) the athlete is heavily booked on, so scheduling can avoid
+     * them. Returns an empty list when chronos is not configured or the call
+     * fails, so planning degrades gracefully.
+     *
+     * @return list<string>
+     */
+    public function busyDays(string $from, string $to): array
+    {
+        if (! $this->isConfigured()) {
+            return [];
+        }
+
+        try {
+            $response = Http::baseUrl($this->baseUrl)
+                ->withToken($this->token)
+                ->acceptJson()
+                ->timeout(15)
+                ->get('/free-busy', ['from' => $from, 'to' => $to])
+                ->throw();
+
+            $dates = $response->json('busy_dates');
+        } catch (Throwable) {
+            return [];
+        }
+
+        return is_array($dates)
+            ? array_values(array_filter($dates, 'is_string'))
+            : [];
     }
 }
