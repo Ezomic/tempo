@@ -23,6 +23,7 @@ use App\Services\Training\WorkoutDescriber;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -188,6 +189,64 @@ class PlanController extends Controller
         }
 
         return to_route('plan.index')->with('status', 'Training plan generated.');
+    }
+
+    public function calendar(Request $request): Response
+    {
+        $today = CarbonImmutable::now();
+        $start = $today->startOfWeek(Carbon::MONDAY);
+        $weeks = 5;
+        $end = $start->addWeeks($weeks)->subDay();
+
+        $byDate = $request->user()->plannedWorkouts()
+            ->whereBetween('date', [$start->toDateString().' 00:00:00', $end->toDateString().' 23:59:59'])
+            ->orderBy('date')
+            ->get()
+            ->groupBy(fn (PlannedWorkout $w): string => $w->date->toDateString());
+
+        $grid = [];
+        for ($w = 0; $w < $weeks; $w++) {
+            $days = [];
+            for ($d = 0; $d < 7; $d++) {
+                $date = $start->addWeeks($w)->addDays($d);
+                $key = $date->toDateString();
+                $days[] = [
+                    'date' => $key,
+                    'is_today' => $date->isSameDay($today),
+                    'is_past' => $date->lessThan($today->startOfDay()),
+                    'workouts' => ($byDate->get($key) ?? collect())
+                        ->map(fn (PlannedWorkout $workout): array => [
+                            'id' => $workout->id,
+                            'title' => $workout->title,
+                            'sport' => $workout->sport->value,
+                            'workout_type' => $workout->workout_type?->value,
+                            'generated' => $workout->generated_at !== null,
+                            'pushed' => $workout->isPushed(),
+                        ])->values()->all(),
+                ];
+            }
+            $grid[] = ['week_start' => $start->addWeeks($w)->toDateString(), 'days' => $days];
+        }
+
+        return Inertia::render('plan/Calendar', ['weeks' => $grid]);
+    }
+
+    public function move(Request $request, PlannedWorkout $plannedWorkout, PushPlannedWorkoutAction $push): RedirectResponse
+    {
+        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+
+        $validated = $request->validate(['date' => ['required', 'date']]);
+        $plannedWorkout->forceFill(['date' => $validated['date']])->save();
+
+        if ($plannedWorkout->isPushed()) {
+            try {
+                $push->handle($plannedWorkout->refresh());
+            } catch (Throwable) {
+                // A calendar hiccup shouldn't block moving the session.
+            }
+        }
+
+        return back()->with('status', 'Session moved.');
     }
 
     public function reschedule(Request $request, AutoRescheduleService $reschedule): RedirectResponse

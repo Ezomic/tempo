@@ -42,6 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('workouts/{workoutTemplate}/apply', [WorkoutTemplateController::class, 'apply'])->name('workouts.apply');
 
     Route::get('plan', [PlanController::class, 'index'])->name('plan.index');
+    Route::get('plan/calendar', [PlanController::class, 'calendar'])->name('plan.calendar');
+    Route::post('plan/{plannedWorkout}/move', [PlanController::class, 'move'])->name('plan.move');
     Route::get('plan/generate', [PlanController::class, 'generator'])->name('plan.generate');
     Route::post('plan/generate', [PlanController::class, 'generate'])->name('plan.generate.store');
     Route::post('plan', [PlanController::class, 'store'])->name('plan.store');
