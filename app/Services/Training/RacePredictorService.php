@@ -58,25 +58,58 @@ class RacePredictorService
         }
 
         $factor = $this->fitnessFactor($currentCtl, $projectedCtl);
-        $exponent = (float) config('training.predictor.riegel_exponent');
 
         $predictions = [];
         foreach ($this->distances() as $target) {
             $reference = $this->closestReference($references, $target);
-            $time = $reference['time'] * ($target / $reference['distance']) ** $exponent;
-            $time /= $factor;
-
-            $measured = abs($reference['distance'] - $target) / $target <= 0.05;
 
             $predictions[] = [
                 'distance_m' => $target,
                 'label' => $this->label($target),
-                'seconds' => (int) round($time),
-                'source' => $measured ? 'measured' : 'modelled',
+                'seconds' => $this->riegel($reference, $target, $factor),
+                'source' => abs($reference['distance'] - $target) / $target <= 0.05 ? 'measured' : 'modelled',
             ];
         }
 
         return $predictions;
+    }
+
+    /**
+     * Predict a single distance from a mean-max curve, or null without data.
+     *
+     * @param  array<int, float>  $meanMaxBySeconds  duration_s => m/s
+     */
+    public function predictOne(array $meanMaxBySeconds, int $distanceM, float $currentCtl, ?float $projectedCtl = null): ?int
+    {
+        $references = [];
+        foreach ($meanMaxBySeconds as $duration => $speed) {
+            $duration = (int) $duration;
+            $speed = (float) $speed;
+            if ($duration > 0 && $speed > 0.0) {
+                $references[] = ['distance' => $speed * $duration, 'time' => $duration];
+            }
+        }
+
+        if ($references === [] || $distanceM <= 0) {
+            return null;
+        }
+
+        return $this->riegel(
+            $this->closestReference($references, $distanceM),
+            $distanceM,
+            $this->fitnessFactor($currentCtl, $projectedCtl),
+        );
+    }
+
+    /**
+     * @param  array{distance: float, time: int}  $reference
+     */
+    private function riegel(array $reference, int $target, float $fitnessFactor): int
+    {
+        $exponent = (float) config('training.predictor.riegel_exponent');
+        $time = $reference['time'] * ($target / $reference['distance']) ** $exponent;
+
+        return (int) round($time / $fitnessFactor);
     }
 
     /**
