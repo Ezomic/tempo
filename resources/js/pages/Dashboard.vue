@@ -6,6 +6,14 @@ import { index as activitiesIndex, show } from '@/routes/activities';
 import { edit as garminSettings } from '@/routes/garmin';
 import { index as planIndex } from '@/routes/plan';
 
+interface Contributor {
+    key: string;
+    label: string;
+    detail: string;
+    impact: number;
+    direction: string;
+}
+
 interface Readiness {
     score: number;
     verdict: string;
@@ -13,6 +21,8 @@ interface Readiness {
     body_battery: number | null;
     resting_hr: number | null;
     date: string;
+    contributors: Contributor[];
+    summary: string;
 }
 
 interface Load {
@@ -244,8 +254,16 @@ function pct(value: number): string {
     return `${(value / maxWeekly.value) * 100}%`;
 }
 
-function titleCase(value: string | null): string {
-    return value ? value.charAt(0).toUpperCase() + value.slice(1) : '—';
+function impactClass(direction: string): string {
+    return direction === 'down'
+        ? 'text-red-500'
+        : direction === 'up'
+          ? 'text-primary'
+          : 'text-muted-foreground';
+}
+
+function impactSign(impact: number): string {
+    return impact > 0 ? `+${impact}` : impact < 0 ? `${impact}` : '0';
 }
 
 function weekLabel(iso: string): string {
@@ -494,34 +512,32 @@ function duration(seconds: number | null): string {
                             </div>
                         </div>
 
-                        <div class="space-y-2">
+                        <p
+                            class="rounded-lg bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                        >
+                            {{ readiness.summary }}
+                        </p>
+
+                        <div class="space-y-1.5">
                             <div
-                                class="flex items-center justify-between rounded-lg border bg-background px-3 py-2.5 text-sm"
+                                v-for="c in readiness.contributors"
+                                :key="c.key"
+                                class="flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-sm"
                             >
-                                <span class="text-muted-foreground">HRV</span>
-                                <span class="font-semibold">{{
-                                    titleCase(readiness.hrv_status)
+                                <span class="text-muted-foreground">{{
+                                    c.label
                                 }}</span>
-                            </div>
-                            <div
-                                class="flex items-center justify-between rounded-lg border bg-background px-3 py-2.5 text-sm"
-                            >
-                                <span class="text-muted-foreground"
-                                    >Body battery</span
-                                >
-                                <span class="font-semibold">{{
-                                    readiness.body_battery ?? '—'
-                                }}</span>
-                            </div>
-                            <div
-                                class="flex items-center justify-between rounded-lg border bg-background px-3 py-2.5 text-sm"
-                            >
-                                <span class="text-muted-foreground"
-                                    >Resting HR</span
-                                >
-                                <span class="font-semibold">{{
-                                    readiness.resting_hr ?? '—'
-                                }}</span>
+                                <span class="flex items-center gap-2">
+                                    <span
+                                        class="text-xs text-muted-foreground"
+                                        >{{ c.detail }}</span
+                                    >
+                                    <span
+                                        class="w-8 text-right font-semibold tabular-nums"
+                                        :class="impactClass(c.direction)"
+                                        >{{ impactSign(c.impact) }}</span
+                                    >
+                                </span>
                             </div>
                         </div>
                     </div>
