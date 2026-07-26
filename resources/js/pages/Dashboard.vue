@@ -118,6 +118,14 @@ interface AdaptiveSuggestion {
     reason: string;
 }
 
+interface TodayWeather {
+    temp_max: number | null;
+    wind_max: number | null;
+    warning: boolean;
+    key: boolean;
+    reasons: string[];
+}
+
 interface AdherenceWeek {
     week_start: string;
     total: number;
@@ -143,6 +151,7 @@ const props = defineProps<{
     recentActivities: Activity[];
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
+    todayWeather: TodayWeather | null;
 }>();
 
 const currentAdherence = computed<AdherenceWeek | null>(
@@ -1224,6 +1233,47 @@ function duration(seconds: number | null): string {
                             class="mt-3 rounded-lg border bg-background px-3 py-2 text-xs text-muted-foreground"
                         >
                             {{ todayPlan.notes }}
+                        </div>
+
+                        <!-- Weather -->
+                        <div
+                            v-if="todayWeather"
+                            class="mt-3 rounded-lg border px-3 py-2 text-xs"
+                            :class="
+                                todayWeather.warning
+                                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                    : 'bg-background text-muted-foreground'
+                            "
+                        >
+                            <div class="flex items-center justify-between">
+                                <span>Forecast</span>
+                                <span class="font-semibold">
+                                    <template
+                                        v-if="todayWeather.temp_max !== null"
+                                        >{{
+                                            Math.round(todayWeather.temp_max)
+                                        }}°C</template
+                                    >
+                                    <template
+                                        v-if="todayWeather.wind_max !== null"
+                                    >
+                                        ·
+                                        {{ Math.round(todayWeather.wind_max) }}
+                                        km/h wind</template
+                                    >
+                                </span>
+                            </div>
+                            <p
+                                v-if="todayWeather.warning"
+                                class="mt-1 font-medium"
+                            >
+                                {{ todayWeather.reasons.join(' · ') }}
+                                {{
+                                    todayWeather.key
+                                        ? '— tough for a key session'
+                                        : ''
+                                }}
+                            </p>
                         </div>
 
                         <div

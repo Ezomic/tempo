@@ -55,4 +55,14 @@ return [
         'downgrade_below' => 60,
     ],
 
+    /*
+    | Forecast horizon (days) and the heat/wind thresholds that warn on an
+    | outdoor session.
+    */
+    'weather' => [
+        'horizon_days' => 7,
+        'heat_c' => 25.0,
+        'wind_kmh' => 30.0,
+    ],
+
 ];

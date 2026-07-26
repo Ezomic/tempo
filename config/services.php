@@ -50,4 +50,8 @@ return [
         'key' => env('ORS_API_KEY'),
     ],
 
+    'weather' => [
+        'url' => env('OPEN_METEO_URL', 'https://api.open-meteo.com'),
+    ],
+
 ];

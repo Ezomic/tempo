@@ -15,6 +15,7 @@ use App\Services\Training\LoadGuardrailService;
 use App\Services\Training\ReadinessService;
 use App\Services\Training\TrainingLoadService;
 use App\Services\Training\ZoneDistributionService;
+use App\Services\Weather\WeatherService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -31,6 +32,7 @@ class DashboardController extends Controller
         private readonly ZoneDistributionService $zones,
         private readonly AdaptivePlanService $adaptive,
         private readonly AdherenceService $adherence,
+        private readonly WeatherService $weather,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -59,6 +61,9 @@ class DashboardController extends Controller
             'recentActivities' => $this->recentActivities($user),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
+            'todayWeather' => $todayPlan !== null
+                ? $this->weather->forOutdoorSession($todayPlan, $user, $today)
+                : null,
         ]);
     }
 
