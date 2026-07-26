@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { show } from '@/routes/activities';
+import { all as exportAll } from '@/routes/export';
 import {
     enable as shareEnable,
     disable as shareDisable,
@@ -327,6 +328,13 @@ function sportLabel(sport: string): string {
                 <a :href="shareUrl" target="_blank" class="hover:underline">{{
                     shareUrl
                 }}</a>
+            </div>
+            <div class="mt-3 border-t pt-3">
+                <a
+                    :href="exportAll().url"
+                    class="text-xs font-medium text-primary hover:underline"
+                    >Export all activities (CSV)</a
+                >
             </div>
         </section>
 

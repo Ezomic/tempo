@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\LifeEventController;
@@ -25,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('activities', [ActivityController::class, 'index'])->name('activities.index');
     Route::get('activities/{activity}', [ActivityController::class, 'show'])->name('activities.show');
+    Route::get('activities/{activity}/export/{format}', [ExportController::class, 'activity'])->name('activities.export');
+
+    Route::get('export/activities.csv', [ExportController::class, 'all'])->name('export.all');
 
     Route::get('records', [RecordsController::class, 'index'])->name('records.index');
     Route::get('leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard.index');
