@@ -95,7 +95,7 @@ function dayLabel(date: string): string {
         <div class="overflow-x-auto">
             <div class="min-w-[720px]">
                 <div
-                    class="grid grid-cols-7 gap-2 pb-1 text-xs font-medium text-muted-foreground"
+                    class="grid grid-cols-7 gap-2 pb-1 font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase"
                 >
                     <div v-for="day in WEEKDAYS" :key="day" class="px-1">
                         {{ day }}
@@ -129,7 +129,7 @@ function dayLabel(date: string): string {
                             @drop.prevent="onDrop(day.date)"
                         >
                             <div
-                                class="mb-1 text-right text-[11px]"
+                                class="mb-1 text-right font-mono text-[11px] tabular-nums"
                                 :class="
                                     day.is_today
                                         ? 'font-bold text-primary'
