@@ -281,10 +281,10 @@ const stats = computed(() => [
             <CardContent>
                 <div class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
                     <div v-for="stat in stats" :key="stat.label">
-                        <div class="text-muted-foreground">
+                        <div class="data-label">
                             {{ stat.label }}
                         </div>
-                        <div class="text-lg font-semibold">
+                        <div class="mt-0.5 text-lg font-semibold tabular-nums">
                             {{ stat.value }}
                         </div>
                     </div>
