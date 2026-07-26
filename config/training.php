@@ -48,6 +48,18 @@ return [
     ],
 
     /*
+    | Race-time predictor. Target distances (metres) and the Riegel fatigue
+    | exponent used to extrapolate a reference effort to another distance.
+    | fitness_exponent controls how strongly a change in CTL nudges the
+    | predicted pace (endurance gains are sublinear, so it is small).
+    */
+    'predictor' => [
+        'distances_m' => [5000, 10000, 21097, 42195],
+        'riegel_exponent' => 1.06,
+        'fitness_exponent' => 0.10,
+    ],
+
+    /*
     | Readiness score at or below which a hard planned session is offered a
     | downgrade.
     */
