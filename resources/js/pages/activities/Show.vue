@@ -19,6 +19,7 @@ interface Activity {
     avg_speed_mps: number | null;
     calories: number | null;
     trimp: number | null;
+    decoupling: number | null;
     hr_zone_seconds: Record<string, number> | null;
 }
 
@@ -51,6 +52,23 @@ const props = defineProps<{
     streams: Streams | null;
     intervals: Intervals | null;
 }>();
+
+const decouplingRead = computed<{ label: string; class: string }>(() => {
+    const d = props.activity.decoupling ?? 0;
+
+    if (d < 5) {
+        return {
+            label: 'Excellent',
+            class: 'text-emerald-600 dark:text-emerald-400',
+        };
+    }
+
+    if (d <= 10) {
+        return { label: 'Fair', class: 'text-amber-600 dark:text-amber-400' };
+    }
+
+    return { label: 'High drift', class: 'text-red-600 dark:text-red-400' };
+});
 
 const verdictStyle: Record<string, { label: string; class: string }> = {
     hit: { label: 'Hit', class: 'bg-primary/15 text-primary' },
@@ -268,6 +286,30 @@ const stats = computed(() => [
                         {{ duration(z.seconds) }}
                     </span>
                 </div>
+            </CardContent>
+        </Card>
+
+        <Card v-if="activity.decoupling !== null">
+            <CardHeader>
+                <CardTitle>Aerobic decoupling</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div class="flex items-baseline gap-3">
+                    <span
+                        class="text-3xl font-bold tabular-nums"
+                        :class="decouplingRead.class"
+                        >{{ activity.decoupling }}%</span
+                    >
+                    <span
+                        class="text-sm font-medium"
+                        :class="decouplingRead.class"
+                        >{{ decouplingRead.label }}</span
+                    >
+                </div>
+                <p class="mt-2 text-sm text-muted-foreground">
+                    How much your heart rate drifted up relative to pace over
+                    the session. Lower is better aerobic durability.
+                </p>
             </CardContent>
         </Card>
 

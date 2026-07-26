@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Garmin\FitParser;
 use App\Services\Garmin\StreamBuilder;
 use App\Services\Garmin\TrimpCalculator;
+use App\Services\Training\AerobicDecouplingAnalyzer;
 use App\Services\Training\EffortAnalyzer;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\PerformanceRecordService;
@@ -30,6 +31,7 @@ class ReprocessActivitiesAction
         private readonly EffortAnalyzer $effort,
         private readonly FitnessCurveService $fitnessCurve,
         private readonly PerformanceRecordService $records,
+        private readonly AerobicDecouplingAnalyzer $decoupling,
     ) {}
 
     /**
@@ -108,6 +110,10 @@ class ReprocessActivitiesAction
 
         if ($parsed->laps !== []) {
             $attributes['laps'] = $parsed->laps;
+        }
+
+        if ($parsed->hasHeartRate() && $parsed->speedSamples !== []) {
+            $attributes['decoupling'] = $this->decoupling->analyze($parsed->hrSamples, $parsed->speedSamples);
         }
 
         $streamsPath = "garmin/streams/{$activity->user_id}/{$activity->external_id}.json";

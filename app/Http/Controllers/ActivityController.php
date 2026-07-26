@@ -52,6 +52,7 @@ class ActivityController extends Controller
                 'avg_speed_mps' => $activity->avg_speed_mps,
                 'calories' => $activity->calories,
                 'trimp' => $activity->trimp,
+                'decoupling' => $activity->decoupling,
                 'hr_zone_seconds' => $activity->hr_zone_seconds,
             ],
             'streams' => $this->streams($activity),
