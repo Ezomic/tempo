@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $calories
  * @property float|null $trimp
  * @property float|null $decoupling
+ * @property float|null $efficiency_factor
  * @property array<int, int>|null $hr_zone_seconds
  * @property array<int, int>|null $best_efforts
  * @property array<int, float>|null $mean_max
@@ -53,6 +54,7 @@ use Illuminate\Support\Carbon;
     'calories',
     'trimp',
     'decoupling',
+    'efficiency_factor',
     'hr_zone_seconds',
     'best_efforts',
     'mean_max',
@@ -84,6 +86,7 @@ class Activity extends Model
             'avg_speed_mps' => 'float',
             'trimp' => 'float',
             'decoupling' => 'float',
+            'efficiency_factor' => 'float',
             'hr_zone_seconds' => 'array',
             'best_efforts' => 'array',
             'mean_max' => 'array',
