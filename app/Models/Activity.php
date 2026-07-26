@@ -27,6 +27,8 @@ use Illuminate\Support\Carbon;
  * @property float|null $trimp
  * @property float|null $decoupling
  * @property float|null $efficiency_factor
+ * @property float|null $cardiac_cost
+ * @property float|null $hr_drift
  * @property array<int, int>|null $hr_zone_seconds
  * @property array<int, int>|null $best_efforts
  * @property array<int, float>|null $mean_max
@@ -55,6 +57,8 @@ use Illuminate\Support\Carbon;
     'trimp',
     'decoupling',
     'efficiency_factor',
+    'cardiac_cost',
+    'hr_drift',
     'hr_zone_seconds',
     'best_efforts',
     'mean_max',
@@ -87,6 +91,8 @@ class Activity extends Model
             'trimp' => 'float',
             'decoupling' => 'float',
             'efficiency_factor' => 'float',
+            'cardiac_cost' => 'float',
+            'hr_drift' => 'float',
             'hr_zone_seconds' => 'array',
             'best_efforts' => 'array',
             'mean_max' => 'array',

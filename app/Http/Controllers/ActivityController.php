@@ -53,6 +53,8 @@ class ActivityController extends Controller
                 'calories' => $activity->calories,
                 'trimp' => $activity->trimp,
                 'decoupling' => $activity->decoupling,
+                'cardiac_cost' => $activity->cardiac_cost,
+                'hr_drift' => $activity->hr_drift,
                 'hr_zone_seconds' => $activity->hr_zone_seconds,
             ],
             'streams' => $this->streams($activity),

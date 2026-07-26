@@ -20,6 +20,8 @@ interface Activity {
     calories: number | null;
     trimp: number | null;
     decoupling: number | null;
+    cardiac_cost: number | null;
+    hr_drift: number | null;
     hr_zone_seconds: Record<string, number> | null;
 }
 
@@ -223,6 +225,20 @@ const stats = computed(() => [
     },
     { label: 'Calories', value: props.activity.calories ?? '—' },
     { label: 'Load (TRIMP)', value: props.activity.trimp ?? '—' },
+    {
+        label: 'Cardiac cost',
+        value:
+            props.activity.cardiac_cost === null
+                ? '—'
+                : `${props.activity.cardiac_cost} beats/km`,
+    },
+    {
+        label: 'HR drift',
+        value:
+            props.activity.hr_drift === null
+                ? '—'
+                : `${props.activity.hr_drift > 0 ? '+' : ''}${props.activity.hr_drift}%`,
+    },
 ]);
 </script>
 
