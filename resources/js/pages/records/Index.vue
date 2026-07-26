@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { show } from '@/routes/activities';
+import {
+    enable as shareEnable,
+    disable as shareDisable,
+    show as publicProfile,
+} from '@/routes/public-profile';
 import { index as recordsIndex } from '@/routes/records';
 
 interface RecordRow {
@@ -40,7 +45,23 @@ const props = defineProps<{
     sport: string;
     availableSports: string[];
     fitnessMarkers: { vo2max: Vo2Point[]; threshold: ThresholdPoint[] };
+    shareToken: string | null;
 }>();
+
+const shareUrl = computed(() =>
+    props.shareToken
+        ? new URL(publicProfile(props.shareToken).url, window.location.origin)
+              .href
+        : null,
+);
+
+function enableShare(): void {
+    router.post(shareEnable().url, {}, { preserveScroll: true });
+}
+
+function disableShare(): void {
+    router.delete(shareDisable().url, { preserveScroll: true });
+}
 
 const hasMarkers = computed(
     () =>
@@ -273,6 +294,40 @@ function sportLabel(sport: string): string {
             <p v-else class="py-10 text-center text-sm text-muted-foreground">
                 Not enough data for a pace curve yet.
             </p>
+        </section>
+
+        <section class="rounded-xl border bg-card p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-bold">Public profile</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Share a read-only snapshot: current form, PRs and a
+                        fitness sparkline. No wellness or activity detail.
+                    </p>
+                </div>
+                <button
+                    v-if="!shareToken"
+                    class="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+                    @click="enableShare"
+                >
+                    Enable link
+                </button>
+                <button
+                    v-else
+                    class="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+                    @click="disableShare"
+                >
+                    Disable
+                </button>
+            </div>
+            <div
+                v-if="shareUrl"
+                class="mt-3 rounded-md border bg-background px-3 py-2 text-xs break-all text-muted-foreground"
+            >
+                <a :href="shareUrl" target="_blank" class="hover:underline">{{
+                    shareUrl
+                }}</a>
+            </div>
         </section>
 
         <section v-if="hasMarkers" class="rounded-xl border bg-card p-5">

@@ -7,6 +7,7 @@ use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\LifeEventController;
 use App\Http\Controllers\PacingController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\RecapController;
 use App\Http\Controllers\RecordsController;
 use App\Http\Controllers\RouteController;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
 
+Route::get('p/{token}', [PublicProfileController::class, 'show'])->name('public-profile.show');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
@@ -26,6 +29,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('records', [RecordsController::class, 'index'])->name('records.index');
     Route::get('leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard.index');
     Route::get('recap', [RecapController::class, 'index'])->name('recap.index');
+
+    Route::post('profile/share', [PublicProfileController::class, 'enable'])->name('public-profile.enable');
+    Route::delete('profile/share', [PublicProfileController::class, 'disable'])->name('public-profile.disable');
 
     Route::get('wellness', [WellnessController::class, 'index'])->name('wellness.index');
     Route::post('life-events', [LifeEventController::class, 'store'])->name('life-events.store');

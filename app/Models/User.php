@@ -22,6 +22,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $email
  * @property float|null $home_lat
  * @property float|null $home_lng
+ * @property string|null $public_profile_token
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $two_factor_secret
