@@ -11,6 +11,7 @@ use App\Models\TrainingGoal;
 use App\Models\User;
 use App\Services\Training\AdaptivePlanService;
 use App\Services\Training\AdherenceService;
+use App\Services\Training\CardiacCostService;
 use App\Services\Training\EfficiencyFactorService;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\GoalProgressService;
@@ -42,6 +43,7 @@ class DashboardController extends Controller
         private readonly GoalProgressService $goals,
         private readonly TaperReadinessService $taper,
         private readonly EfficiencyFactorService $efficiency,
+        private readonly CardiacCostService $cardiacCost,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -72,6 +74,7 @@ class DashboardController extends Controller
             'goals' => $this->dashboardGoals($user, $today),
             'taper' => $this->taper->forNextRace($user, $today),
             'efficiencyTrend' => $this->efficiency->weeklyTrend($user, $today, 12),
+            'cardiacCostTrend' => $this->cardiacCost->weeklyTrend($user, $today, 12),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
             'todayWeather' => $todayPlan !== null

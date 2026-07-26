@@ -149,6 +149,11 @@ interface EfPoint {
     ef: number;
 }
 
+interface CostPoint {
+    week_start: string;
+    cost: number;
+}
+
 interface TaperFactor {
     key: string;
     label: string;
@@ -191,6 +196,7 @@ const props = defineProps<{
     goals: GoalCard[];
     taper: Taper | null;
     efficiencyTrend: Record<string, EfPoint[]>;
+    cardiacCostTrend: Record<string, CostPoint[]>;
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -427,6 +433,34 @@ function efSpark(points: EfPoint[]): string {
 function efDelta(points: EfPoint[]): number {
     return (
         Math.round((points[points.length - 1].ef - points[0].ef) * 100) / 100
+    );
+}
+
+const cardiacCostSports = computed(() =>
+    Object.entries(props.cardiacCostTrend)
+        .filter(([, points]) => points.length >= 2)
+        .map(([sport, points]) => ({ sport, points })),
+);
+
+function costSpark(points: CostPoint[]): string {
+    const values = points.map((p) => p.cost);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
+
+    return points
+        .map((p, i) => {
+            const x = (i / (points.length - 1)) * 100;
+            const y = 100 - ((p.cost - min) / span) * 100;
+
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(' ');
+}
+
+function costDelta(points: CostPoint[]): number {
+    return (
+        Math.round((points[points.length - 1].cost - points[0].cost) * 10) / 10
     );
 }
 
@@ -1294,6 +1328,59 @@ function duration(seconds: number | null): string {
                                 stroke="currentColor"
                                 stroke-width="2"
                                 class="text-primary"
+                                vector-effect="non-scaling-stroke"
+                                transform="scale(1, 0.4)"
+                            />
+                        </svg>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cardiac cost trend -->
+            <section
+                v-if="cardiacCostSports.length"
+                class="rounded-xl border bg-card p-5"
+            >
+                <div class="mb-4">
+                    <h2 class="text-sm font-bold">Cardiac cost</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Heartbeats per km, weekly · falling means more
+                        economical
+                    </p>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div
+                        v-for="entry in cardiacCostSports"
+                        :key="entry.sport"
+                        class="rounded-lg border bg-background p-3"
+                    >
+                        <div class="mb-2 flex items-baseline justify-between">
+                            <span class="text-xs font-medium capitalize">{{
+                                entry.sport
+                            }}</span>
+                            <span
+                                class="text-xs font-semibold tabular-nums"
+                                :class="
+                                    costDelta(entry.points) <= 0
+                                        ? 'text-emerald-500'
+                                        : 'text-red-500'
+                                "
+                            >
+                                {{ costDelta(entry.points) > 0 ? '+' : ''
+                                }}{{ costDelta(entry.points) }}
+                            </span>
+                        </div>
+                        <svg
+                            viewBox="0 0 100 40"
+                            preserveAspectRatio="none"
+                            class="h-12 w-full"
+                        >
+                            <polyline
+                                :points="costSpark(entry.points)"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="text-sky-500"
                                 vector-effect="non-scaling-stroke"
                                 transform="scale(1, 0.4)"
                             />
