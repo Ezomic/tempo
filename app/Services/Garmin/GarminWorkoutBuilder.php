@@ -17,12 +17,9 @@ class GarminWorkoutBuilder
      */
     public function build(PlannedWorkout $workout): array
     {
-        $steps = $workout->steps->values();
-        $last = $steps->count() - 1;
-
         $entries = [];
-        foreach ($steps as $i => $step) {
-            array_push($entries, ...$this->stepEntries($step, $workout->sport, $i === 0, $i === $last));
+        foreach ($workout->steps as $step) {
+            array_push($entries, ...$this->stepEntries($step, $workout->sport));
         }
 
         $minutes = $workout->computedDurationMin();
@@ -41,25 +38,17 @@ class GarminWorkoutBuilder
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function stepEntries(PlannedWorkoutStep $step, Sport $sport, bool $isFirst, bool $isLast): array
+    private function stepEntries(PlannedWorkoutStep $step, Sport $sport): array
     {
         $hasRecovery = ($step->recovery_min ?? 0) > 0;
 
-        // A single-rep first/last step reads better on the watch as a warm-up or
-        // cool-down screen than a plain interval.
-        $type = 'interval';
-        if ($step->repeat <= 1) {
-            if ($isFirst) {
-                $type = 'warmup';
-            } elseif ($isLast && ! $hasRecovery) {
-                $type = 'cooldown';
-            }
-        }
-
+        // Every work step is an interval. Position-based warm-up/cool-down
+        // guessing mislabels the main effort when it happens to be first or last,
+        // so the step's own label carries any "Warm up" / "Cool down" meaning.
         $work = [
-            'type' => $type,
+            'type' => 'interval',
             'seconds' => $step->duration_min * 60,
-            'description' => $step->label ?? $this->workWord($sport, $type),
+            'description' => $step->label ?? ($sport === Sport::Bike ? 'Ride' : 'Jog'),
         ];
 
         if ($step->repeat > 1) {
@@ -93,14 +82,5 @@ class GarminWorkoutBuilder
             'seconds' => (int) $step->recovery_min * 60,
             'description' => $sport === Sport::Bike ? 'Easy spin' : 'Walk',
         ];
-    }
-
-    private function workWord(Sport $sport, string $type): string
-    {
-        return match ($type) {
-            'warmup' => 'Warm up',
-            'cooldown' => 'Cool down',
-            default => $sport === Sport::Bike ? 'Ride' : 'Jog',
-        };
     }
 }

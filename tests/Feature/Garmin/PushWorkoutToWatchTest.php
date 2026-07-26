@@ -39,7 +39,7 @@ function intervalWorkout(User $user): PlannedWorkout
     return $workout->load('steps');
 }
 
-it('maps steps into a warmup, a repeat group and a cooldown', function () {
+it('maps steps into intervals and a repeat group, keeping labels', function () {
     $body = app(GarminWorkoutBuilder::class)->build(intervalWorkout(User::factory()->create()));
 
     expect($body['sport'])->toBe('running')
@@ -49,7 +49,7 @@ it('maps steps into a warmup, a repeat group and a cooldown', function () {
 
     [$warm, $repeat, $cool] = $body['steps'];
 
-    expect($warm['type'])->toBe('warmup')
+    expect($warm['type'])->toBe('interval')
         ->and($warm['seconds'])->toBe(600)
         ->and($warm['description'])->toBe('Warm up')
         ->and($repeat['type'])->toBe('repeat')
@@ -61,8 +61,23 @@ it('maps steps into a warmup, a repeat group and a cooldown', function () {
         ->and($repeat['steps'][1]['type'])->toBe('recovery')
         ->and($repeat['steps'][1]['seconds'])->toBe(120)
         ->and($repeat['steps'][1]['description'])->toBe('Walk')
-        ->and($cool['type'])->toBe('cooldown')
-        ->and($cool['seconds'])->toBe(300);
+        ->and($cool['type'])->toBe('interval')
+        ->and($cool['seconds'])->toBe(300)
+        ->and($cool['description'])->toBe('Cool down');
+});
+
+it('maps a single unlabelled block to one interval, not a warmup', function () {
+    $user = User::factory()->create();
+    $workout = $user->plannedWorkouts()->create([
+        'date' => '2026-07-30', 'sport' => Sport::Bike, 'title' => 'Easy ride', 'duration_min' => 30,
+    ]);
+    $workout->steps()->create(['position' => 0, 'repeat' => 1, 'duration_min' => 30, 'intensity' => Intensity::Easy]);
+
+    $steps = app(GarminWorkoutBuilder::class)->build($workout->load('steps'))['steps'];
+
+    expect($steps)->toHaveCount(1)
+        ->and($steps[0]['type'])->toBe('interval')
+        ->and($steps[0]['description'])->toBe('Ride');
 });
 
 it('defaults run step wording to Jog and Walk', function () {
