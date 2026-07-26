@@ -194,3 +194,8 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Instrument micro-label: uppercase monospace caption used across pages. */
+@utility data-label {
+    @apply font-mono text-[10px] font-medium tracking-[0.11em] text-muted-foreground uppercase;
+}
