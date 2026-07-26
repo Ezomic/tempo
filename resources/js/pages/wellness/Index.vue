@@ -279,7 +279,7 @@ const hasData = computed(() =>
         <section class="rounded-xl border bg-card p-5">
             <div class="mb-4">
                 <h2 class="text-sm font-bold">Life events</h2>
-                <p class="mt-0.5 text-xs text-muted-foreground">
+                <p class="mt-0.5 font-mono text-[11px] text-muted-foreground">
                     Annotate days with non-training context. Amber markers on
                     the charts above show where they fall.
                 </p>

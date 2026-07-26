@@ -132,7 +132,9 @@ const sports = computed(() => Object.entries(props.recap.by_sport));
             >
                 <div>
                     <h2 class="text-sm font-bold">Consistency</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                    >
                         Training days over the last year
                     </p>
                 </div>
