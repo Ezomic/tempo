@@ -4,6 +4,7 @@ import {
     Activity,
     BookOpen,
     CalendarDays,
+    CalendarRange,
     Dumbbell,
     FolderGit2,
     Gauge,
@@ -32,6 +33,7 @@ import { index as goalsIndex } from '@/routes/goals';
 import { index as leaderboardIndex } from '@/routes/leaderboard';
 import { index as pacingIndex } from '@/routes/pacing';
 import { index as planIndex } from '@/routes/plan';
+import { index as recapIndex } from '@/routes/recap';
 import { index as recordsIndex } from '@/routes/records';
 import { index as wellnessIndex } from '@/routes/wellness';
 import { index as workoutsIndex } from '@/routes/workouts';
@@ -67,6 +69,11 @@ const mainNavItems: NavItem[] = [
         title: 'Leaderboard',
         href: leaderboardIndex(),
         icon: Medal,
+    },
+    {
+        title: 'Recap',
+        href: recapIndex(),
+        icon: CalendarRange,
     },
     {
         title: 'Goals',
