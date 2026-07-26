@@ -16,6 +16,7 @@ use App\Services\Training\EfficiencyFactorService;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\GoalProgressService;
 use App\Services\Training\LoadGuardrailService;
+use App\Services\Training\OvertrainingWatchService;
 use App\Services\Training\RacePredictorService;
 use App\Services\Training\ReadinessService;
 use App\Services\Training\TaperReadinessService;
@@ -46,6 +47,7 @@ class DashboardController extends Controller
         private readonly EfficiencyFactorService $efficiency,
         private readonly CardiacCostService $cardiacCost,
         private readonly ZoneCalibrationService $zoneCalibration,
+        private readonly OvertrainingWatchService $overtraining,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -78,6 +80,7 @@ class DashboardController extends Controller
             'efficiencyTrend' => $this->efficiency->weeklyTrend($user, $today, 12),
             'cardiacCostTrend' => $this->cardiacCost->weeklyTrend($user, $today, 12),
             'zoneCalibration' => $this->zoneCalibration->suggestion($user, $today),
+            'overtraining' => $this->overtraining->watch($user, $today),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
             'todayWeather' => $todayPlan !== null

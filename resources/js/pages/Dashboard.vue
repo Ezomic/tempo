@@ -155,6 +155,11 @@ interface CostPoint {
     cost: number;
 }
 
+interface Overtraining {
+    level: string;
+    reasons: string[];
+}
+
 interface ZoneCalibration {
     estimated_lthr: number;
     current_lthr: number | null;
@@ -207,6 +212,7 @@ const props = defineProps<{
     efficiencyTrend: Record<string, EfPoint[]>;
     cardiacCostTrend: Record<string, CostPoint[]>;
     zoneCalibration: ZoneCalibration | null;
+    overtraining: Overtraining | null;
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -235,6 +241,20 @@ function acceptDowngrade(): void {
 function applyCalibration(): void {
     router.post(zonesCalibrate().url, {}, { preserveScroll: true });
 }
+
+const overtrainingStyle = computed(() =>
+    props.overtraining?.level === 'back_off'
+        ? {
+              banner: 'border-red-500/40 bg-red-500/10',
+              title: 'Back off',
+              text: 'text-red-600 dark:text-red-400',
+          }
+        : {
+              banner: 'border-amber-500/40 bg-amber-500/10',
+              title: 'Watch your recovery',
+              text: 'text-amber-600 dark:text-amber-400',
+          },
+);
 
 defineOptions({
     layout: {
@@ -1224,6 +1244,24 @@ function duration(seconds: number | null): string {
                 >
                     No heart-rate zone data yet.
                 </p>
+            </section>
+
+            <!-- Overtraining warning -->
+            <section
+                v-if="overtraining"
+                class="rounded-xl border p-5"
+                :class="overtrainingStyle.banner"
+            >
+                <h2 class="text-sm font-bold" :class="overtrainingStyle.text">
+                    {{ overtrainingStyle.title }}
+                </h2>
+                <ul
+                    class="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground"
+                >
+                    <li v-for="reason in overtraining.reasons" :key="reason">
+                        {{ reason }}
+                    </li>
+                </ul>
             </section>
 
             <!-- Taper readiness (race week) -->

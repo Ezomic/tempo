@@ -106,6 +106,19 @@ return [
     ],
 
     /*
+    | Overtraining early warning. Recent wellness (recent_days) is compared to
+    | a baseline (baseline_days before it); a factor trips when resting HR is
+    | elevated, HRV suppressed, or sleep is short.
+    */
+    'overtraining' => [
+        'recent_days' => 7,
+        'baseline_days' => 28,
+        'rhr_elevation_bpm' => 4.0,
+        'hrv_drop_pct' => 8.0,
+        'sleep_min_hours' => 6.5,
+    ],
+
+    /*
     | Forecast horizon (days) and the heat/wind thresholds that warn on an
     | outdoor session.
     */
