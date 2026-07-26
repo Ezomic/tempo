@@ -35,6 +35,6 @@ class PaceEstimator
 
         return $avg !== null && (float) $avg > 0
             ? (float) $avg
-            : self::DEFAULTS[$sport->value];
+            : (self::DEFAULTS[$sport->value] ?? self::DEFAULTS['other']);
     }
 }

@@ -66,7 +66,7 @@ class TrainingLoadService
             $key = match ($activity->sport) {
                 Sport::Run => 'run',
                 Sport::Bike => 'bike',
-                Sport::Other => 'other',
+                default => 'other',
             };
             $totals[$key] += (float) ($activity->trimp ?? 0);
         }
@@ -138,7 +138,7 @@ class TrainingLoadService
             $key = match ($activity->sport) {
                 Sport::Run => 'run',
                 Sport::Bike => 'bike',
-                Sport::Other => 'other',
+                default => 'other',
             };
             $buckets[$weekKey][$key] += $load;
             $buckets[$weekKey]['total'] += $load;
