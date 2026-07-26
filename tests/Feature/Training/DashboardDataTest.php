@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Enums\HrvStatus;
 use App\Enums\Sport;
+use App\Enums\WorkoutType;
 use App\Models\Activity;
+use App\Models\PlannedWorkout;
 use App\Models\User;
 use App\Models\WellnessDay;
 use App\Services\Training\FitnessCurveService;
@@ -59,6 +61,34 @@ it('exposes load, weekly and readiness props once data exists', function () {
             // Balanced HRV + healthy battery, but a single activity spikes the
             // acute:chronic ratio, so the score is docked from 100.
             ->where('readiness.score', 75));
+});
+
+it('flags a recent activity that overran a planned easy day', function () {
+    $user = User::factory()->create();
+    $today = CarbonImmutable::now();
+
+    Activity::create([
+        'user_id' => $user->id,
+        'external_id' => 'hard-easy',
+        'sport' => Sport::Run,
+        'started_at' => $today,
+        'trimp' => 90,
+    ]);
+    PlannedWorkout::create([
+        'user_id' => $user->id,
+        'date' => $today->toDateString(),
+        'sport' => Sport::Run,
+        'workout_type' => WorkoutType::Easy,
+        'title' => 'Easy run',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard')
+            ->where('recentActivities.0.recovery_flag', true)
+            ->has('chronicBySport.total'));
 });
 
 it('exposes the stored fitness curve with history and projection', function () {

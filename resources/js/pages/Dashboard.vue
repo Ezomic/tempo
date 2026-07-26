@@ -30,6 +30,13 @@ interface Week {
     total: number;
 }
 
+interface ChronicBySport {
+    run: number;
+    bike: number;
+    other: number;
+    total: number;
+}
+
 interface Guardrails {
     acwr: number | null;
     acwr_band: string;
@@ -59,6 +66,7 @@ interface Activity {
     distance_m: number | null;
     duration_s: number | null;
     trimp: number | null;
+    recovery_flag: boolean;
 }
 
 interface TodayPlan {
@@ -74,6 +82,7 @@ const props = defineProps<{
     garminConnected: boolean;
     readiness: Readiness | null;
     load: Load;
+    chronicBySport: ChronicBySport;
     guardrails: Guardrails;
     fitnessCurve: FitnessCurve;
     weekly: Week[];
@@ -153,6 +162,17 @@ const rampLabel = computed<string>(() => {
     }
 
     return `${ramp > 0 ? '+' : ''}${ramp}%`;
+});
+
+const chronicSplit = computed(() => {
+    const { run, bike, other, total } = props.chronicBySport;
+    const base = total > 0 ? total : 1;
+
+    return {
+        run: `${(run / base) * 100}%`,
+        bike: `${(bike / base) * 100}%`,
+        other: `${(other / base) * 100}%`,
+    };
 });
 
 const maxWeekly = computed(() =>
@@ -522,6 +542,40 @@ function duration(seconds: number | null): string {
                         </div>
                     </div>
 
+                    <div class="mt-5">
+                        <div
+                            class="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground"
+                        >
+                            <span>Chronic load by sport</span>
+                            <span class="tabular-nums">
+                                <span class="text-sky-500">{{
+                                    chronicBySport.run
+                                }}</span>
+                                run ·
+                                <span class="text-emerald-500">{{
+                                    chronicBySport.bike
+                                }}</span>
+                                bike
+                            </span>
+                        </div>
+                        <div
+                            class="flex h-2.5 overflow-hidden rounded-full border bg-background"
+                        >
+                            <span
+                                class="bg-sky-500"
+                                :style="{ width: chronicSplit.run }"
+                            />
+                            <span
+                                class="bg-emerald-500"
+                                :style="{ width: chronicSplit.bike }"
+                            />
+                            <span
+                                class="bg-muted-foreground/40"
+                                :style="{ width: chronicSplit.other }"
+                            />
+                        </div>
+                    </div>
+
                     <div class="mt-6">
                         <div
                             class="relative h-2.5 rounded-full border bg-background"
@@ -808,11 +862,19 @@ function duration(seconds: number | null): string {
                                           : 'bg-muted-foreground'
                                 "
                             />
-                            <Link
-                                :href="show(activity.id)"
-                                class="truncate font-medium hover:underline"
-                                >{{ activity.name }}</Link
-                            >
+                            <span class="flex min-w-0 items-center gap-1.5">
+                                <Link
+                                    :href="show(activity.id)"
+                                    class="truncate font-medium hover:underline"
+                                    >{{ activity.name }}</Link
+                                >
+                                <span
+                                    v-if="activity.recovery_flag"
+                                    class="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400"
+                                    title="Planned easy, but this carried real load"
+                                    >High load</span
+                                >
+                            </span>
                             <span class="text-muted-foreground tabular-nums">{{
                                 km(activity.distance_m)
                             }}</span>

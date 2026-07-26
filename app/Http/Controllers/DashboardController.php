@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\WorkoutType;
 use App\Models\Activity;
 use App\Models\PlannedWorkout;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Services\Training\ReadinessService;
 use App\Services\Training\TrainingLoadService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,14 +39,36 @@ class DashboardController extends Controller
             'garminConnected' => $user->garminConnection?->isConnected() ?? false,
             'readiness' => $this->readiness->snapshot($user, $load['ratio']),
             'load' => $load,
+            'chronicBySport' => $this->load->chronicBySport($user, $today),
             'guardrails' => $this->guardrails->guardrails($user, $today),
             'fitnessCurve' => $this->fitnessCurve($user, $today),
             'weekly' => $this->load->weeklyBySport($user, $today, 8),
-            'recentActivities' => $user->activities()
-                ->latest('started_at')
-                ->limit(5)
-                ->get()
-                ->map(fn (Activity $activity): array => [
+            'recentActivities' => $this->recentActivities($user),
+            'todayPlan' => $this->todayPlan($user->plannedWorkouts()->whereDate('date', $today->toDateString())->first()),
+        ]);
+    }
+
+    /**
+     * The five most recent activities, flagging any that overran a day
+     * planned as recovery or easy.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function recentActivities(User $user): array
+    {
+        $activities = $user->activities()
+            ->latest('started_at')
+            ->limit(5)
+            ->get();
+
+        $easyPlans = $this->easyPlansByDate($user, $activities);
+        $ceiling = (float) config('training.recovery_ceiling');
+
+        return array_values($activities
+            ->map(function (Activity $activity) use ($easyPlans, $ceiling): array {
+                $date = $activity->started_at->toDateString();
+
+                return [
                     'id' => $activity->id,
                     'sport' => $activity->sport->value,
                     'name' => is_string($activity->raw_summary['activityName'] ?? null)
@@ -53,9 +77,37 @@ class DashboardController extends Controller
                     'distance_m' => $activity->distance_m,
                     'duration_s' => $activity->duration_s,
                     'trimp' => $activity->trimp,
-                ]),
-            'todayPlan' => $this->todayPlan($user->plannedWorkouts()->whereDate('date', $today->toDateString())->first()),
-        ]);
+                    'recovery_flag' => $easyPlans->has($date)
+                        && (float) ($activity->trimp ?? 0) > $ceiling,
+                ];
+            })
+            ->all());
+    }
+
+    /**
+     * Recovery/easy planned workouts on the dates of the given activities,
+     * keyed by date.
+     *
+     * @param  Collection<int, Activity>  $activities
+     * @return Collection<string, PlannedWorkout>
+     */
+    private function easyPlansByDate(User $user, Collection $activities): Collection
+    {
+        $dates = $activities
+            ->map(fn (Activity $activity): string => $activity->started_at->toDateString())
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($dates === []) {
+            return collect();
+        }
+
+        return $user->plannedWorkouts()
+            ->whereIn('workout_type', [WorkoutType::Recovery, WorkoutType::Easy])
+            ->whereBetween('date', [min($dates).' 00:00:00', max($dates).' 23:59:59'])
+            ->get()
+            ->keyBy(fn (PlannedWorkout $workout): string => $workout->date->toDateString());
     }
 
     /**
