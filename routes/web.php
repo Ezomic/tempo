@@ -9,6 +9,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\RecordsController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\WellnessController;
+use App\Http\Controllers\WorkoutTemplateController;
 use App\Http\Controllers\ZoneCalibrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('pacing', [PacingController::class, 'plan'])->name('pacing.plan');
 
     Route::post('zones/calibrate', [ZoneCalibrationController::class, 'apply'])->name('zones.calibrate');
+
+    Route::get('workouts', [WorkoutTemplateController::class, 'index'])->name('workouts.index');
+    Route::post('workouts', [WorkoutTemplateController::class, 'store'])->name('workouts.store');
+    Route::delete('workouts/{workoutTemplate}', [WorkoutTemplateController::class, 'destroy'])->name('workouts.destroy');
+    Route::post('workouts/{workoutTemplate}/apply', [WorkoutTemplateController::class, 'apply'])->name('workouts.apply');
 
     Route::get('plan', [PlanController::class, 'index'])->name('plan.index');
     Route::get('plan/generate', [PlanController::class, 'generator'])->name('plan.generate');
