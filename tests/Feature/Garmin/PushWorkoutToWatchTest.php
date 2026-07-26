@@ -64,6 +64,24 @@ it('maps steps into intervals and a repeat group, keeping labels', function () {
         ->and($cool['type'])->toBe('interval')
         ->and($cool['seconds'])->toBe(300)
         ->and($cool['description'])->toBe('Cool down');
+
+    // Run work intervals carry a pace target; walk recoveries do not.
+    expect($warm)->toHaveKeys(['target_pace_low', 'target_pace_high'])
+        ->and($repeat['steps'][0])->toHaveKeys(['target_pace_low', 'target_pace_high'])
+        ->and($repeat['steps'][1])->not->toHaveKey('target_pace_low')
+        ->and($repeat['steps'][0]['target_pace_low'])->toBeLessThan($repeat['steps'][0]['target_pace_high']);
+});
+
+it('gives no pace target to bike intervals', function () {
+    $user = User::factory()->create();
+    $workout = $user->plannedWorkouts()->create([
+        'date' => '2026-07-30', 'sport' => Sport::Bike, 'title' => 'Ride', 'duration_min' => 30,
+    ]);
+    $workout->steps()->create(['position' => 0, 'repeat' => 1, 'duration_min' => 30, 'intensity' => Intensity::Easy]);
+
+    $steps = app(GarminWorkoutBuilder::class)->build($workout->load('steps'))['steps'];
+
+    expect($steps[0])->not->toHaveKey('target_pace_low');
 });
 
 it('maps a single unlabelled block to one interval, not a warmup', function () {
