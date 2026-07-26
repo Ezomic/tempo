@@ -6,13 +6,16 @@ namespace App\Actions;
 
 use App\DataObjects\ParsedActivity;
 use App\DataObjects\ReprocessResult;
+use App\Enums\Sport;
 use App\Models\Activity;
 use App\Models\HrZoneSettings;
 use App\Models\User;
 use App\Services\Garmin\FitParser;
 use App\Services\Garmin\StreamBuilder;
 use App\Services\Garmin\TrimpCalculator;
+use App\Services\Training\EffortAnalyzer;
 use App\Services\Training\FitnessCurveService;
+use App\Services\Training\PerformanceRecordService;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Support\Facades\Storage;
@@ -24,7 +27,9 @@ class ReprocessActivitiesAction
         private readonly FitParser $fitParser,
         private readonly TrimpCalculator $trimp,
         private readonly StreamBuilder $streamBuilder,
+        private readonly EffortAnalyzer $effort,
         private readonly FitnessCurveService $fitnessCurve,
+        private readonly PerformanceRecordService $records,
     ) {}
 
     /**
@@ -94,6 +99,13 @@ class ReprocessActivitiesAction
             $attributes['hr_zone_seconds'] = $this->trimp->zoneSeconds($parsed->hrSamples, $settings);
         }
 
+        if ($parsed->speedSamples !== []) {
+            if ($activity->sport === Sport::Run) {
+                $attributes['best_efforts'] = $this->effort->bestEfforts($parsed->speedSamples);
+            }
+            $attributes['mean_max'] = $this->effort->meanMax($parsed->speedSamples);
+        }
+
         $streamsPath = "garmin/streams/{$activity->user_id}/{$activity->external_id}.json";
         Storage::disk('local')->put($streamsPath, (string) json_encode($this->streamBuilder->build($parsed)));
         $attributes['streams_path'] = $streamsPath;
@@ -112,6 +124,7 @@ class ReprocessActivitiesAction
             $user = User::find($userId);
             if ($user !== null) {
                 $this->fitnessCurve->recompute($user, $today);
+                $this->records->recompute($user);
             }
         }
     }

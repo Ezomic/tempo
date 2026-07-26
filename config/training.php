@@ -31,4 +31,13 @@ return [
     */
     'recovery_ceiling' => 50.0,
 
+    /*
+    | Standard distances (metres) for running personal bests and durations
+    | (seconds) for the mean-max pace curve.
+    */
+    'records' => [
+        'distances_m' => [1000, 5000, 10000, 21097],
+        'durations_s' => [60, 300, 600, 1200, 1800, 3600],
+    ],
+
 ];

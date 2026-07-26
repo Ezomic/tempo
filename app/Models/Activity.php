@@ -26,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $calories
  * @property float|null $trimp
  * @property array<int, int>|null $hr_zone_seconds
+ * @property array<int, int>|null $best_efforts
+ * @property array<int, float>|null $mean_max
  * @property string|null $fit_path
  * @property string|null $streams_path
  * @property array<string, mixed>|null $raw_summary
@@ -49,6 +51,8 @@ use Illuminate\Support\Carbon;
     'calories',
     'trimp',
     'hr_zone_seconds',
+    'best_efforts',
+    'mean_max',
     'fit_path',
     'streams_path',
     'raw_summary',
@@ -76,6 +80,8 @@ class Activity extends Model
             'avg_speed_mps' => 'float',
             'trimp' => 'float',
             'hr_zone_seconds' => 'array',
+            'best_efforts' => 'array',
+            'mean_max' => 'array',
             'raw_summary' => 'array',
         ];
     }

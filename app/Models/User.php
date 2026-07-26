@@ -87,6 +87,22 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * @return HasMany<PersonalRecord, $this>
+     */
+    public function personalRecords(): HasMany
+    {
+        return $this->hasMany(PersonalRecord::class);
+    }
+
+    /**
+     * @return HasMany<MeanMaxEffort, $this>
+     */
+    public function meanMaxEfforts(): HasMany
+    {
+        return $this->hasMany(MeanMaxEffort::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
