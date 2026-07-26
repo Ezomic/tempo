@@ -160,6 +160,14 @@ interface Overtraining {
     reasons: string[];
 }
 
+interface Recommendation {
+    action: string;
+    headline: string;
+    reason: string;
+    planned_workout_id: number | null;
+    factors: { label: string; detail: string }[];
+}
+
 interface ZoneCalibration {
     estimated_lthr: number;
     current_lthr: number | null;
@@ -213,6 +221,7 @@ const props = defineProps<{
     cardiacCostTrend: Record<string, CostPoint[]>;
     zoneCalibration: ZoneCalibration | null;
     overtraining: Overtraining | null;
+    recommendation: Recommendation | null;
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -241,6 +250,44 @@ function acceptDowngrade(): void {
 function applyCalibration(): void {
     router.post(zonesCalibrate().url, {}, { preserveScroll: true });
 }
+
+function easeFromRecommendation(): void {
+    if (!props.recommendation?.planned_workout_id) {
+        return;
+    }
+
+    router.post(
+        downgrade(props.recommendation.planned_workout_id).url,
+        {},
+        { preserveScroll: true },
+    );
+}
+
+const recommendationStyle: Record<
+    string,
+    { label: string; class: string; dot: string }
+> = {
+    proceed: {
+        label: 'Proceed',
+        class: 'border-emerald-500/40 bg-emerald-500/10',
+        dot: 'bg-emerald-500',
+    },
+    ease: {
+        label: 'Ease',
+        class: 'border-amber-500/40 bg-amber-500/10',
+        dot: 'bg-amber-500',
+    },
+    move: {
+        label: 'Move',
+        class: 'border-sky-500/40 bg-sky-500/10',
+        dot: 'bg-sky-500',
+    },
+    rest: {
+        label: 'Rest',
+        class: 'border-red-500/40 bg-red-500/10',
+        dot: 'bg-red-500',
+    },
+};
 
 const overtrainingStyle = computed(() =>
     props.overtraining?.level === 'back_off'
@@ -704,6 +751,68 @@ function duration(seconds: number | null): string {
 
         <template v-else>
             <div class="grid gap-4 lg:grid-cols-3">
+                <!-- Today's recommendation -->
+                <section
+                    v-if="recommendation"
+                    class="rounded-xl border p-5 lg:col-span-2"
+                    :class="recommendationStyle[recommendation.action]?.class"
+                >
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-3"
+                    >
+                        <div class="flex items-start gap-3">
+                            <span
+                                class="mt-1 h-3 w-3 shrink-0 rounded-full"
+                                :class="
+                                    recommendationStyle[recommendation.action]
+                                        ?.dot
+                                "
+                            />
+                            <div>
+                                <div
+                                    class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                                >
+                                    Today ·
+                                    {{
+                                        recommendationStyle[
+                                            recommendation.action
+                                        ]?.label
+                                    }}
+                                </div>
+                                <h2 class="text-lg font-bold">
+                                    {{ recommendation.headline }}
+                                </h2>
+                                <p class="mt-0.5 text-sm text-muted-foreground">
+                                    {{ recommendation.reason }}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            v-if="
+                                recommendation.action === 'ease' &&
+                                recommendation.planned_workout_id
+                            "
+                            class="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+                            @click="easeFromRecommendation"
+                        >
+                            Ease it
+                        </button>
+                    </div>
+                    <div
+                        class="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground"
+                    >
+                        <span
+                            v-for="factor in recommendation.factors"
+                            :key="factor.label"
+                        >
+                            <span class="font-medium text-foreground">{{
+                                factor.label
+                            }}</span>
+                            {{ factor.detail }}
+                        </span>
+                    </div>
+                </section>
+
                 <!-- Readiness -->
                 <section class="rounded-xl border bg-card p-5">
                     <div class="mb-1 flex items-baseline justify-between">
