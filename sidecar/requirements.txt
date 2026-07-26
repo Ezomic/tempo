@@ -1,3 +1,5 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
-garminconnect==0.3.6
+# 0.3.2 is the newest release that installs on the prod droplet's Python 3.10;
+# 0.3.3+ require Python >=3.12. 0.3.2 already ships the typed workout builder.
+garminconnect==0.3.2
