@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // Garmin only has new data after the watch syncs to the phone, so a few times
 // a day is plenty and keeps API call volume low.
 Schedule::command('garmin:sync')->everyFourHours()->withoutOverlapping();
+
+// Monday-morning recap of the week just finished.
+Schedule::command('tempo:weekly-digest')->weeklyOn(1, '07:00');
