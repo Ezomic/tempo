@@ -1119,7 +1119,9 @@ function duration(seconds: number | null): string {
                 >
                     <div>
                         <h2 class="text-sm font-bold">Fitness &amp; form</h2>
-                        <p class="mt-0.5 text-xs text-muted-foreground">
+                        <p
+                            class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                        >
                             CTL / ATL / TSB · dashed is projected from your plan
                         </p>
                     </div>
@@ -1274,7 +1276,9 @@ function duration(seconds: number | null): string {
                         <h2 class="text-sm font-bold">
                             Intensity distribution
                         </h2>
-                        <p class="mt-0.5 text-xs text-muted-foreground">
+                        <p
+                            class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                        >
                             Time in HR zones · 80/20 over 4 weeks
                         </p>
                     </div>
@@ -1465,7 +1469,9 @@ function duration(seconds: number | null): string {
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 class="text-sm font-bold">Reschedule this week</h2>
-                        <p class="mt-0.5 text-xs text-muted-foreground">
+                        <p
+                            class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                        >
                             {{ reschedule.reason }}
                         </p>
                     </div>
@@ -1486,7 +1492,9 @@ function duration(seconds: number | null): string {
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 class="text-sm font-bold">Your zones look off</h2>
-                        <p class="mt-0.5 text-xs text-muted-foreground">
+                        <p
+                            class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                        >
                             Recent hard efforts suggest a threshold HR of
                             <span class="font-semibold">{{
                                 zoneCalibration.estimated_lthr
@@ -1517,7 +1525,9 @@ function duration(seconds: number | null): string {
             >
                 <div class="mb-4">
                     <h2 class="text-sm font-bold">Efficiency factor</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                    >
                         Speed per heartbeat, weekly · rising means fitter
                     </p>
                 </div>
@@ -1569,7 +1579,9 @@ function duration(seconds: number | null): string {
             >
                 <div class="mb-4">
                     <h2 class="text-sm font-bold">Cardiac cost</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                    >
                         Heartbeats per km, weekly · falling means more
                         economical
                     </p>
@@ -1622,7 +1634,9 @@ function duration(seconds: number | null): string {
             >
                 <div class="mb-4">
                     <h2 class="text-sm font-bold">Race predictor</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                    >
                         Estimated finishes from your mean-max curve
                     </p>
                 </div>
@@ -1659,7 +1673,9 @@ function duration(seconds: number | null): string {
                 >
                     <div>
                         <h2 class="text-sm font-bold">Plan adherence</h2>
-                        <p class="mt-0.5 text-xs text-muted-foreground">
+                        <p
+                            class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                        >
                             Planned vs actual · last 4 weeks
                         </p>
                     </div>
