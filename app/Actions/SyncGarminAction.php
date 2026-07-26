@@ -15,6 +15,7 @@ use App\Services\Garmin\FitParser;
 use App\Services\Garmin\GarminClient;
 use App\Services\Garmin\StreamBuilder;
 use App\Services\Garmin\TrimpCalculator;
+use App\Services\Training\AerobicDecouplingAnalyzer;
 use App\Services\Training\EffortAnalyzer;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\PerformanceRecordService;
@@ -37,6 +38,7 @@ class SyncGarminAction
         private readonly EffortAnalyzer $effort,
         private readonly FitnessCurveService $fitnessCurve,
         private readonly PerformanceRecordService $records,
+        private readonly AerobicDecouplingAnalyzer $decoupling,
     ) {}
 
     public function handle(GarminConnection $connection): void
@@ -126,6 +128,10 @@ class SyncGarminAction
 
             if ($parsed->laps !== []) {
                 $attributes['laps'] = $parsed->laps;
+            }
+
+            if ($parsed->hasHeartRate() && $parsed->speedSamples !== []) {
+                $attributes['decoupling'] = $this->decoupling->analyze($parsed->hrSamples, $parsed->speedSamples);
             }
 
             $streamsPath = $this->archiveStreams($connection, $summary->externalId, $parsed);

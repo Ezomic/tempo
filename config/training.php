@@ -78,6 +78,15 @@ return [
     ],
 
     /*
+    | Aerobic decoupling. Only steady efforts of at least min_seconds and with
+    | a speed coefficient of variation under max_speed_cov are scored.
+    */
+    'decoupling' => [
+        'min_seconds' => 1200,
+        'max_speed_cov' => 0.35,
+    ],
+
+    /*
     | Forecast horizon (days) and the heat/wind thresholds that warn on an
     | outdoor session.
     */
