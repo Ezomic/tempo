@@ -13,6 +13,18 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
+    /* Monospace for data readouts and micro-labels (instrument treatment). */
+    --font-mono:
+        'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo,
+        Consolas, 'Liberation Mono', monospace;
+
+    /* Heart-rate zone spectrum — the dedicated data colour language. */
+    --color-zone-1: var(--zone-1);
+    --color-zone-2: var(--zone-2);
+    --color-zone-3: var(--zone-3);
+    --color-zone-4: var(--zone-4);
+    --color-zone-5: var(--zone-5);
+
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -90,78 +102,88 @@
 }
 
 :root {
-    /* Tempo — athletic light: near-white with a faint green tint, lime accent. */
-    --background: hsl(140 20% 98%);
-    --foreground: hsl(150 14% 10%);
+    /* Tempo — instrument light: cool graphite neutrals, aqua-teal accent. */
+    --background: hsl(210 16% 97%);
+    --foreground: hsl(214 24% 12%);
     --card: hsl(0 0% 100%);
-    --card-foreground: hsl(150 14% 10%);
+    --card-foreground: hsl(214 24% 12%);
     --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(150 14% 10%);
-    --primary: hsl(82 79% 27%);
-    --primary-foreground: hsl(82 60% 97%);
-    --secondary: hsl(140 12% 93%);
-    --secondary-foreground: hsl(150 14% 12%);
-    --muted: hsl(140 14% 95%);
-    --muted-foreground: hsl(150 8% 40%);
-    --accent: hsl(140 14% 94%);
-    --accent-foreground: hsl(150 14% 12%);
-    --destructive: hsl(0 72% 48%);
+    --popover-foreground: hsl(214 24% 12%);
+    --primary: hsl(172 84% 32%);
+    --primary-foreground: hsl(170 40% 98%);
+    --secondary: hsl(210 16% 93%);
+    --secondary-foreground: hsl(214 22% 16%);
+    --muted: hsl(210 16% 95%);
+    --muted-foreground: hsl(214 10% 40%);
+    --accent: hsl(172 44% 92%);
+    --accent-foreground: hsl(172 60% 18%);
+    --destructive: hsl(2 68% 48%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(140 12% 90%);
-    --input: hsl(140 12% 88%);
-    --ring: hsl(82 79% 32%);
-    --chart-1: hsl(199 89% 55%);
-    --chart-2: hsl(160 64% 45%);
-    --chart-3: hsl(82 78% 45%);
-    --chart-4: hsl(43 90% 55%);
-    --chart-5: hsl(0 72% 60%);
-    --radius: 0.75rem;
-    --sidebar-background: hsl(140 20% 97%);
-    --sidebar-foreground: hsl(150 10% 26%);
-    --sidebar-primary: hsl(82 79% 27%);
-    --sidebar-primary-foreground: hsl(82 60% 97%);
-    --sidebar-accent: hsl(140 14% 93%);
-    --sidebar-accent-foreground: hsl(150 10% 26%);
-    --sidebar-border: hsl(140 12% 90%);
-    --sidebar-ring: hsl(82 79% 32%);
-    --sidebar: hsl(140 20% 97%);
+    --border: hsl(214 16% 90%);
+    --input: hsl(214 16% 88%);
+    --ring: hsl(172 84% 34%);
+    --chart-1: hsl(200 92% 58%);
+    --chart-2: hsl(172 72% 42%);
+    --chart-3: hsl(43 96% 52%);
+    --chart-4: hsl(20 92% 56%);
+    --chart-5: hsl(0 82% 60%);
+    --zone-1: hsl(199 95% 74%);
+    --zone-2: hsl(200 94% 60%);
+    --zone-3: hsl(43 96% 56%);
+    --zone-4: hsl(20 96% 59%);
+    --zone-5: hsl(0 84% 60%);
+    --radius: 0.7rem;
+    --sidebar-background: hsl(210 18% 96%);
+    --sidebar-foreground: hsl(214 12% 30%);
+    --sidebar-primary: hsl(172 84% 32%);
+    --sidebar-primary-foreground: hsl(170 40% 98%);
+    --sidebar-accent: hsl(172 44% 92%);
+    --sidebar-accent-foreground: hsl(172 60% 18%);
+    --sidebar-border: hsl(214 16% 90%);
+    --sidebar-ring: hsl(172 84% 34%);
+    --sidebar: hsl(210 18% 96%);
 }
 
 .dark {
-    /* Tempo — athletic dark: green-tinted charcoal surfaces, electric lime accent. */
-    --background: hsl(160 16% 5%);
-    --foreground: hsl(146 22% 92%);
-    --card: hsl(156 14% 9%);
-    --card-foreground: hsl(146 22% 92%);
-    --popover: hsl(156 14% 9%);
-    --popover-foreground: hsl(146 22% 92%);
-    --primary: hsl(82 87% 62%);
-    --primary-foreground: hsl(150 40% 6%);
-    --secondary: hsl(156 10% 15%);
-    --secondary-foreground: hsl(146 22% 92%);
-    --muted: hsl(156 10% 15%);
-    --muted-foreground: hsl(150 8% 60%);
-    --accent: hsl(156 10% 16%);
-    --accent-foreground: hsl(146 22% 92%);
-    --destructive: hsl(0 72% 58%);
+    /* Tempo — instrument dark: cool graphite surfaces, glowing aqua-teal accent. */
+    --background: hsl(216 26% 6%);
+    --foreground: hsl(210 20% 92%);
+    --card: hsl(214 22% 10%);
+    --card-foreground: hsl(210 20% 92%);
+    --popover: hsl(214 22% 10%);
+    --popover-foreground: hsl(210 20% 92%);
+    --primary: hsl(172 72% 52%);
+    --primary-foreground: hsl(172 60% 8%);
+    --secondary: hsl(214 16% 16%);
+    --secondary-foreground: hsl(210 20% 92%);
+    --muted: hsl(214 16% 15%);
+    --muted-foreground: hsl(214 12% 60%);
+    --accent: hsl(172 40% 16%);
+    --accent-foreground: hsl(172 60% 82%);
+    --destructive: hsl(2 78% 62%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(156 12% 16%);
-    --input: hsl(156 12% 18%);
-    --ring: hsl(82 87% 62%);
-    --chart-1: hsl(199 89% 60%);
-    --chart-2: hsl(160 64% 48%);
-    --chart-3: hsl(82 87% 62%);
-    --chart-4: hsl(43 90% 62%);
-    --chart-5: hsl(0 72% 62%);
-    --sidebar-background: hsl(160 16% 6%);
-    --sidebar-foreground: hsl(146 12% 88%);
-    --sidebar-primary: hsl(82 87% 62%);
-    --sidebar-primary-foreground: hsl(150 40% 6%);
-    --sidebar-accent: hsl(156 10% 14%);
-    --sidebar-accent-foreground: hsl(146 12% 92%);
-    --sidebar-border: hsl(156 12% 14%);
-    --sidebar-ring: hsl(82 87% 62%);
-    --sidebar: hsl(160 16% 6%);
+    --border: hsl(214 16% 18%);
+    --input: hsl(214 16% 20%);
+    --ring: hsl(172 72% 52%);
+    --chart-1: hsl(200 92% 62%);
+    --chart-2: hsl(172 70% 52%);
+    --chart-3: hsl(43 96% 60%);
+    --chart-4: hsl(20 92% 62%);
+    --chart-5: hsl(0 82% 64%);
+    --zone-1: hsl(199 92% 72%);
+    --zone-2: hsl(200 94% 62%);
+    --zone-3: hsl(43 96% 60%);
+    --zone-4: hsl(20 96% 62%);
+    --zone-5: hsl(0 82% 64%);
+    --sidebar-background: hsl(216 26% 7%);
+    --sidebar-foreground: hsl(214 12% 74%);
+    --sidebar-primary: hsl(172 72% 52%);
+    --sidebar-primary-foreground: hsl(172 60% 8%);
+    --sidebar-accent: hsl(214 16% 14%);
+    --sidebar-accent-foreground: hsl(210 20% 92%);
+    --sidebar-border: hsl(214 16% 15%);
+    --sidebar-ring: hsl(172 72% 52%);
+    --sidebar: hsl(216 26% 7%);
 }
 
 @layer base {
