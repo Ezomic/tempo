@@ -75,7 +75,9 @@ function km(m: number | null): string {
             <div class="mb-3 flex items-baseline justify-between gap-3">
                 <div>
                     <h2 class="text-sm font-bold">{{ board.name }}</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground capitalize">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground capitalize"
+                    >
                         {{ board.sport }} · {{ km(board.distance_m) }} ·
                         {{ board.count }} efforts
                     </p>
