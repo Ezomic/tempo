@@ -115,16 +115,25 @@ class PlanController extends Controller
         return back()->with('status', 'Sent to your watch.');
     }
 
-    public function destroy(Request $request, PlannedWorkout $plannedWorkout): RedirectResponse
+    public function destroy(Request $request, PlannedWorkout $plannedWorkout, ChronosClient $chronos): RedirectResponse
     {
         abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+
+        $eventId = $plannedWorkout->chronos_event_id;
+        if ($eventId !== null && $eventId !== '' && $chronos->isConfigured()) {
+            try {
+                $chronos->deleteEvent($eventId);
+            } catch (Throwable) {
+                // A calendar hiccup shouldn't block removing the plan.
+            }
+        }
 
         $plannedWorkout->delete();
 
         return back()->with('status', 'Workout removed.');
     }
 
-    public function downgrade(Request $request, PlannedWorkout $plannedWorkout, DowngradeWorkoutAction $action): RedirectResponse
+    public function downgrade(Request $request, PlannedWorkout $plannedWorkout, DowngradeWorkoutAction $action, PushPlannedWorkoutAction $push): RedirectResponse
     {
         abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
 
@@ -132,6 +141,15 @@ class PlanController extends Controller
             $action->handle($plannedWorkout);
         } catch (RuntimeException) {
             return back()->withErrors(['downgrade' => 'This session cannot be downgraded.']);
+        }
+
+        // Keep the calendar in sync with the eased session.
+        if ($plannedWorkout->isPushed()) {
+            try {
+                $push->handle($plannedWorkout->refresh());
+            } catch (Throwable) {
+                // Non-fatal: the plan change stands even if the sync fails.
+            }
         }
 
         return back()->with('status', 'Session eased for today.');

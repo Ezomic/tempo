@@ -17,21 +17,32 @@ class PushPlannedWorkoutAction
 
     public function handle(PlannedWorkout $workout): void
     {
-        $event = $this->chronos->createAllDayEvent(
-            title: $this->title($workout),
-            date: $workout->date->toDateString(),
-            description: $this->describer->describe($workout),
-            source: [
-                'app' => 'tempo',
-                'type' => 'planned-workout',
-                'id' => (string) $workout->id,
-                'url' => route('plan.index'),
-            ],
-        );
+        $existingId = $workout->chronos_event_id;
+
+        // Update the same event in place when it already exists so a moved or
+        // changed session relocates rather than creating a duplicate.
+        $event = $existingId !== null && $existingId !== ''
+            ? $this->chronos->updateAllDayEvent(
+                eventId: $existingId,
+                title: $this->title($workout),
+                date: $workout->date->toDateString(),
+                description: $this->describer->describe($workout),
+            )
+            : $this->chronos->createAllDayEvent(
+                title: $this->title($workout),
+                date: $workout->date->toDateString(),
+                description: $this->describer->describe($workout),
+                source: [
+                    'app' => 'tempo',
+                    'type' => 'planned-workout',
+                    'id' => (string) $workout->id,
+                    'url' => route('plan.index'),
+                ],
+            );
 
         $workout->update([
-            'chronos_event_id' => $event['id'],
-            'chronos_url' => $event['url'],
+            'chronos_event_id' => $event['id'] !== '' ? $event['id'] : $existingId,
+            'chronos_url' => $event['url'] ?? $workout->chronos_url,
             'pushed_at' => now(),
         ]);
     }
