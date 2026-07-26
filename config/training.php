@@ -68,6 +68,16 @@ return [
     ],
 
     /*
+    | Taper readiness. The card appears within window_days of a race goal.
+    | tsb_min/tsb_max is the freshness window form should land in on race day.
+    */
+    'taper' => [
+        'window_days' => 10,
+        'tsb_min' => 5.0,
+        'tsb_max' => 25.0,
+    ],
+
+    /*
     | Forecast horizon (days) and the heat/wind thresholds that warn on an
     | outdoor session.
     */

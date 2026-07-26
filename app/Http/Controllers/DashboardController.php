@@ -16,6 +16,7 @@ use App\Services\Training\GoalProgressService;
 use App\Services\Training\LoadGuardrailService;
 use App\Services\Training\RacePredictorService;
 use App\Services\Training\ReadinessService;
+use App\Services\Training\TaperReadinessService;
 use App\Services\Training\TrainingLoadService;
 use App\Services\Training\ZoneDistributionService;
 use App\Services\Weather\WeatherService;
@@ -38,6 +39,7 @@ class DashboardController extends Controller
         private readonly WeatherService $weather,
         private readonly RacePredictorService $predictor,
         private readonly GoalProgressService $goals,
+        private readonly TaperReadinessService $taper,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -66,6 +68,7 @@ class DashboardController extends Controller
             'recentActivities' => $this->recentActivities($user),
             'racePredictions' => $this->predictor->predictions($user),
             'goals' => $this->dashboardGoals($user, $today),
+            'taper' => $this->taper->forNextRace($user, $today),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
             'todayWeather' => $todayPlan !== null
