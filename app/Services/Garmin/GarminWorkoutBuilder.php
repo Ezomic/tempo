@@ -22,7 +22,7 @@ class GarminWorkoutBuilder
 
         $entries = [];
         foreach ($steps as $i => $step) {
-            array_push($entries, ...$this->stepEntries($step, $i === 0, $i === $last));
+            array_push($entries, ...$this->stepEntries($step, $workout->sport, $i === 0, $i === $last));
         }
 
         $minutes = $workout->computedDurationMin();
@@ -41,20 +41,31 @@ class GarminWorkoutBuilder
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function stepEntries(PlannedWorkoutStep $step, bool $isFirst, bool $isLast): array
+    private function stepEntries(PlannedWorkoutStep $step, Sport $sport, bool $isFirst, bool $isLast): array
     {
         $hasRecovery = ($step->recovery_min ?? 0) > 0;
 
+        // A single-rep first/last step reads better on the watch as a warm-up or
+        // cool-down screen than a plain interval.
+        $type = 'interval';
+        if ($step->repeat <= 1) {
+            if ($isFirst) {
+                $type = 'warmup';
+            } elseif ($isLast && ! $hasRecovery) {
+                $type = 'cooldown';
+            }
+        }
+
         $work = [
-            'type' => 'interval',
+            'type' => $type,
             'seconds' => $step->duration_min * 60,
-            'description' => $step->label ?? $step->intensity->label(),
+            'description' => $step->label ?? $this->workWord($sport, $type),
         ];
 
         if ($step->repeat > 1) {
             $inner = [$work];
             if ($hasRecovery) {
-                $inner[] = $this->recoveryEntry($step);
+                $inner[] = $this->recoveryEntry($step, $sport);
             }
 
             return [[
@@ -64,17 +75,9 @@ class GarminWorkoutBuilder
             ]];
         }
 
-        // A single-rep first/last step reads better on the watch as a warm-up or
-        // cool-down screen than a plain interval.
-        if ($isFirst) {
-            $work['type'] = 'warmup';
-        } elseif ($isLast && ! $hasRecovery) {
-            $work['type'] = 'cooldown';
-        }
-
         $entries = [$work];
         if ($hasRecovery) {
-            $entries[] = $this->recoveryEntry($step);
+            $entries[] = $this->recoveryEntry($step, $sport);
         }
 
         return $entries;
@@ -83,12 +86,21 @@ class GarminWorkoutBuilder
     /**
      * @return array<string, mixed>
      */
-    private function recoveryEntry(PlannedWorkoutStep $step): array
+    private function recoveryEntry(PlannedWorkoutStep $step, Sport $sport): array
     {
         return [
             'type' => 'recovery',
             'seconds' => (int) $step->recovery_min * 60,
-            'description' => $step->recovery_intensity?->label() ?? 'Recovery',
+            'description' => $sport === Sport::Bike ? 'Easy spin' : 'Walk',
         ];
+    }
+
+    private function workWord(Sport $sport, string $type): string
+    {
+        return match ($type) {
+            'warmup' => 'Warm up',
+            'cooldown' => 'Cool down',
+            default => $sport === Sport::Bike ? 'Ride' : 'Jog',
+        };
     }
 }

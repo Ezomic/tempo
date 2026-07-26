@@ -60,8 +60,41 @@ it('maps steps into a warmup, a repeat group and a cooldown', function () {
         ->and($repeat['steps'][0]['description'])->toBe('Jog')
         ->and($repeat['steps'][1]['type'])->toBe('recovery')
         ->and($repeat['steps'][1]['seconds'])->toBe(120)
+        ->and($repeat['steps'][1]['description'])->toBe('Walk')
         ->and($cool['type'])->toBe('cooldown')
         ->and($cool['seconds'])->toBe(300);
+});
+
+it('defaults run step wording to Jog and Walk', function () {
+    $user = User::factory()->create();
+    $workout = $user->plannedWorkouts()->create([
+        'date' => '2026-07-28', 'sport' => Sport::Run, 'title' => 'Intervals', 'duration_min' => 20,
+    ]);
+    $workout->steps()->create([
+        'position' => 0, 'repeat' => 4, 'duration_min' => 2, 'recovery_min' => 1,
+        'intensity' => Intensity::Hard, 'recovery_intensity' => Intensity::Recovery,
+    ]);
+
+    $repeat = app(GarminWorkoutBuilder::class)->build($workout->load('steps'))['steps'][0];
+
+    expect($repeat['steps'][0]['description'])->toBe('Jog')
+        ->and($repeat['steps'][1]['description'])->toBe('Walk');
+});
+
+it('defaults bike step wording to Ride and Easy spin', function () {
+    $user = User::factory()->create();
+    $workout = $user->plannedWorkouts()->create([
+        'date' => '2026-07-30', 'sport' => Sport::Bike, 'title' => 'Ride', 'duration_min' => 30,
+    ]);
+    $workout->steps()->create([
+        'position' => 0, 'repeat' => 3, 'duration_min' => 3, 'recovery_min' => 2,
+        'intensity' => Intensity::Steady, 'recovery_intensity' => Intensity::Easy,
+    ]);
+
+    $repeat = app(GarminWorkoutBuilder::class)->build($workout->load('steps'))['steps'][0];
+
+    expect($repeat['steps'][0]['description'])->toBe('Ride')
+        ->and($repeat['steps'][1]['description'])->toBe('Easy spin');
 });
 
 it('maps bike workouts to cycling', function () {
