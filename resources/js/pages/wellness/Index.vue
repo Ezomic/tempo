@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import {
+    store as lifeEventsStore,
+    destroy as lifeEventsDestroy,
+} from '@/routes/life-events';
 import { index as wellnessIndex } from '@/routes/wellness';
 
 interface Point {
@@ -14,11 +18,55 @@ interface Point {
     baseline_sleep: number | null;
 }
 
+interface LifeEvent {
+    id: number;
+    date: string;
+    kind: string;
+    note: string | null;
+}
+
 const props = defineProps<{
     points: Point[];
     days: number;
     ranges: number[];
+    lifeEvents: LifeEvent[];
+    kinds: string[];
 }>();
+
+const eventForm = useForm({ date: '', kind: 'travel', note: '' });
+
+function addEvent(): void {
+    eventForm.post(lifeEventsStore().url, {
+        preserveScroll: true,
+        onSuccess: () => eventForm.reset('note'),
+    });
+}
+
+function removeEvent(id: number): void {
+    router.delete(lifeEventsDestroy(id).url, { preserveScroll: true });
+}
+
+function kindLabel(kind: string): string {
+    return kind.replace('_', ' ');
+}
+
+// x position (0-100) of a date within the current point range.
+const eventMarkers = computed(() => {
+    const dates = props.points.map((p) => p.date);
+    const n = dates.length;
+
+    return props.lifeEvents
+        .map((e) => {
+            const i = dates.indexOf(e.date);
+
+            return i === -1
+                ? null
+                : { id: e.id, x: (i / Math.max(1, n - 1)) * 100, kind: e.kind };
+        })
+        .filter(
+            (m): m is { id: number; x: number; kind: string } => m !== null,
+        );
+});
 
 defineOptions({
     layout: {
@@ -185,6 +233,18 @@ const hasData = computed(() =>
                     preserveAspectRatio="none"
                     class="h-32 w-full"
                 >
+                    <line
+                        v-for="marker in eventMarkers"
+                        :key="marker.id"
+                        :x1="marker.x"
+                        :x2="marker.x"
+                        y1="0"
+                        y2="100"
+                        stroke="currentColor"
+                        stroke-width="1"
+                        class="text-amber-500/50"
+                        vector-effect="non-scaling-stroke"
+                    />
                     <polyline
                         v-if="chart.baseline"
                         :points="chart.baseline"
@@ -214,5 +274,77 @@ const hasData = computed(() =>
                 </p>
             </section>
         </div>
+
+        <!-- Life events -->
+        <section class="rounded-xl border bg-card p-5">
+            <div class="mb-4">
+                <h2 class="text-sm font-bold">Life events</h2>
+                <p class="mt-0.5 text-xs text-muted-foreground">
+                    Annotate days with non-training context. Amber markers on
+                    the charts above show where they fall.
+                </p>
+            </div>
+
+            <form
+                class="flex flex-wrap items-end gap-2"
+                @submit.prevent="addEvent"
+            >
+                <input
+                    v-model="eventForm.date"
+                    type="date"
+                    class="rounded-md border bg-background px-3 py-2 text-sm"
+                />
+                <select
+                    v-model="eventForm.kind"
+                    class="rounded-md border bg-background px-3 py-2 text-sm capitalize"
+                >
+                    <option v-for="k in kinds" :key="k" :value="k">
+                        {{ kindLabel(k) }}
+                    </option>
+                </select>
+                <input
+                    v-model="eventForm.note"
+                    type="text"
+                    placeholder="Note (optional)"
+                    class="min-w-40 flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+                />
+                <button
+                    type="submit"
+                    :disabled="eventForm.processing"
+                    class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                    Add
+                </button>
+            </form>
+            <p v-if="eventForm.errors.date" class="mt-1 text-xs text-red-500">
+                {{ eventForm.errors.date }}
+            </p>
+
+            <ul v-if="lifeEvents.length" class="mt-4 space-y-1.5">
+                <li
+                    v-for="event in lifeEvents"
+                    :key="event.id"
+                    class="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm"
+                >
+                    <div>
+                        <span class="font-medium capitalize">{{
+                            kindLabel(event.kind)
+                        }}</span>
+                        <span class="text-muted-foreground">
+                            · {{ event.date
+                            }}<span v-if="event.note">
+                                · {{ event.note }}</span
+                            ></span
+                        >
+                    </div>
+                    <button
+                        class="text-xs text-muted-foreground hover:text-red-500"
+                        @click="removeEvent(event.id)"
+                    >
+                        Remove
+                    </button>
+                </li>
+            </ul>
+        </section>
     </div>
 </template>
