@@ -51,6 +51,37 @@ class TrainingLoadService
     }
 
     /**
+     * Chronic (weekly-average) load split by sport over the chronic window.
+     * The total reconciles with acuteChronic()'s chronic_weekly figure.
+     *
+     * @return array{run: float, bike: float, other: float, total: float}
+     */
+    public function chronicBySport(User $user, CarbonImmutable $today): array
+    {
+        $windowStart = $today->subDays(self::CHRONIC_DAYS - 1)->startOfDay();
+        $activities = $this->activitiesSince($user, $windowStart, $today->endOfDay());
+
+        $totals = ['run' => 0.0, 'bike' => 0.0, 'other' => 0.0];
+        foreach ($activities as $activity) {
+            $key = match ($activity->sport) {
+                Sport::Run => 'run',
+                Sport::Bike => 'bike',
+                Sport::Other => 'other',
+            };
+            $totals[$key] += (float) ($activity->trimp ?? 0);
+        }
+
+        $weeks = self::CHRONIC_DAYS / 7;
+
+        return [
+            'run' => round($totals['run'] / $weeks, 1),
+            'bike' => round($totals['bike'] / $weeks, 1),
+            'other' => round($totals['other'] / $weeks, 1),
+            'total' => round(array_sum($totals) / $weeks, 1),
+        ];
+    }
+
+    /**
      * Week-over-week change in acute (7-day) load as a percentage. Null when
      * there is no prior week to compare against.
      */

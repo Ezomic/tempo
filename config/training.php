@@ -25,4 +25,10 @@ return [
         'danger' => 25.0,
     ],
 
+    /*
+    | TRIMP above which a session planned as recovery or easy is flagged as
+    | having carried real training load.
+    */
+    'recovery_ceiling' => 50.0,
+
 ];

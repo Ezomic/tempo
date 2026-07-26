@@ -45,6 +45,26 @@ it('returns a null ratio and unknown status without history', function () {
         ->and($load['status'])->toBe('unknown');
 });
 
+it('splits chronic load by sport and reconciles with the total', function () {
+    $user = User::factory()->create();
+    $today = CarbonImmutable::parse('2026-07-15');
+
+    makeActivity($user, Sport::Run, '2026-07-15', 60);
+    makeActivity($user, Sport::Bike, '2026-07-10', 40);
+    makeActivity($user, Sport::Run, '2026-06-25', 20);
+
+    $service = new TrainingLoadService;
+    $split = $service->chronicBySport($user, $today);
+    $combined = $service->acuteChronic($user, $today);
+
+    // run = (60 + 20) / 4 = 20; bike = 40 / 4 = 10; total = 120 / 4 = 30.
+    expect($split['run'])->toBe(20.0)
+        ->and($split['bike'])->toBe(10.0)
+        ->and($split['total'])->toBe(30.0)
+        ->and($split['run'] + $split['bike'] + $split['other'])->toBe($split['total'])
+        ->and($split['total'])->toBe($combined['chronic_weekly']);
+});
+
 it('buckets weekly load by sport', function () {
     $user = User::factory()->create();
     $today = CarbonImmutable::parse('2026-07-15'); // Wed; week starts Mon 2026-07-13
