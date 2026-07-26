@@ -111,6 +111,14 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * @return HasMany<LifeEvent, $this>
+     */
+    public function lifeEvents(): HasMany
+    {
+        return $this->hasMany(LifeEvent::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
