@@ -32,10 +32,10 @@ class WorkoutTemplateController extends Controller
 
         return Inertia::render('workouts/Index', [
             'templates' => $templates,
-            'sports' => [
-                ['value' => Sport::Run->value, 'label' => 'Run'],
-                ['value' => Sport::Bike->value, 'label' => 'Bike'],
-            ],
+            'sports' => array_map(
+                fn (Sport $sport): array => ['value' => $sport->value, 'label' => $sport->label()],
+                [Sport::Run, Sport::Bike, Sport::Swim, Sport::Strength, Sport::Hike],
+            ),
             'intensityOptions' => Intensity::options(),
             'workoutTypeOptions' => WorkoutType::options(),
         ]);

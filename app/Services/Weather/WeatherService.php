@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Weather;
 
-use App\Enums\Sport;
 use App\Models\PlannedWorkout;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -22,7 +21,7 @@ class WeatherService
      */
     public function forOutdoorSession(PlannedWorkout $workout, User $user, CarbonImmutable $today): ?array
     {
-        if ($workout->sport === Sport::Other) {
+        if (! $workout->sport->isOutdoor()) {
             return null;
         }
 
