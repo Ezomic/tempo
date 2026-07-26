@@ -23,12 +23,81 @@ interface MeanMaxRow {
     pace: string;
 }
 
+interface Vo2Point {
+    week_start: string;
+    value: number;
+}
+
+interface ThresholdPoint {
+    week_start: string;
+    speed_mps: number;
+    pace_s_per_km: number;
+}
+
 const props = defineProps<{
     records: RecordRow[];
     meanMax: MeanMaxRow[];
     sport: string;
     availableSports: string[];
+    fitnessMarkers: { vo2max: Vo2Point[]; threshold: ThresholdPoint[] };
 }>();
+
+const hasMarkers = computed(
+    () =>
+        props.fitnessMarkers.vo2max.length >= 2 ||
+        props.fitnessMarkers.threshold.length >= 2,
+);
+
+function normalize(values: number[]): number[] {
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
+
+    return values.map((v) => 100 - ((v - min) / span) * 100);
+}
+
+function markerSpark(ys: number[]): string {
+    if (ys.length < 2) {
+        return '';
+    }
+
+    return ys
+        .map(
+            (y, i) =>
+                `${((i / (ys.length - 1)) * 100).toFixed(1)},${(y * 0.4).toFixed(1)}`,
+        )
+        .join(' ');
+}
+
+const vo2Spark = computed(() =>
+    markerSpark(normalize(props.fitnessMarkers.vo2max.map((p) => p.value))),
+);
+
+const thresholdSpark = computed(() =>
+    markerSpark(
+        normalize(props.fitnessMarkers.threshold.map((p) => p.speed_mps)),
+    ),
+);
+
+function thresholdPace(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+
+    return `${m}:${String(s).padStart(2, '0')}/km`;
+}
+
+const latestVo2 = computed(
+    () =>
+        props.fitnessMarkers.vo2max[props.fitnessMarkers.vo2max.length - 1] ??
+        null,
+);
+
+const latestThreshold = computed(
+    () =>
+        props.fitnessMarkers.threshold[
+            props.fitnessMarkers.threshold.length - 1
+        ] ?? null,
+);
 
 defineOptions({
     layout: {
@@ -203,6 +272,63 @@ function sportLabel(sport: string): string {
             </div>
             <p v-else class="py-10 text-center text-sm text-muted-foreground">
                 Not enough data for a pace curve yet.
+            </p>
+        </section>
+
+        <section v-if="hasMarkers" class="rounded-xl border bg-card p-5">
+            <div
+                class="mb-4 flex flex-wrap items-baseline justify-between gap-2"
+            >
+                <div>
+                    <h2 class="text-sm font-bold">Fitness markers</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        VO2max and derived threshold pace, weekly
+                    </p>
+                </div>
+                <div class="flex gap-4 text-xs">
+                    <span class="flex items-center gap-1.5">
+                        <span class="h-2 w-3 rounded-sm bg-primary" />
+                        VO2max
+                        <span v-if="latestVo2" class="font-semibold">{{
+                            latestVo2.value
+                        }}</span>
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="h-2 w-3 rounded-sm bg-sky-500" />
+                        Threshold
+                        <span v-if="latestThreshold" class="font-semibold">{{
+                            thresholdPace(latestThreshold.pace_s_per_km)
+                        }}</span>
+                    </span>
+                </div>
+            </div>
+            <svg
+                viewBox="0 0 100 40"
+                preserveAspectRatio="none"
+                class="h-32 w-full"
+            >
+                <polyline
+                    v-if="vo2Spark"
+                    :points="vo2Spark"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="text-primary"
+                    vector-effect="non-scaling-stroke"
+                />
+                <polyline
+                    v-if="thresholdSpark"
+                    :points="thresholdSpark"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="text-sky-500"
+                    vector-effect="non-scaling-stroke"
+                />
+            </svg>
+            <p class="mt-2 text-xs text-muted-foreground">
+                Lines are scaled to their own range so both trends read on one
+                chart; higher is fitter for both.
             </p>
         </section>
     </div>
