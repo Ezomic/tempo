@@ -277,7 +277,7 @@ function goalDistance(m: number): string {
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm tabular-nums">
                             <thead
-                                class="text-left text-xs text-muted-foreground"
+                                class="text-left font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase"
                             >
                                 <tr>
                                     <th class="py-1 pr-4">Split</th>
