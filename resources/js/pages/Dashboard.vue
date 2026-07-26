@@ -59,6 +59,26 @@ interface FitnessCurve {
     projection: CurvePoint[];
 }
 
+interface WeekZones {
+    week_start: string;
+    zones: Record<string, number>;
+    total: number;
+}
+
+interface Polarization {
+    easy_pct: number | null;
+    moderate_pct: number | null;
+    hard_pct: number | null;
+    total_seconds: number;
+    verdict: string;
+    easy_target: number;
+}
+
+interface Zones {
+    weekly: WeekZones[];
+    polarization: Polarization;
+}
+
 interface Activity {
     id: number;
     sport: string;
@@ -85,6 +105,7 @@ const props = defineProps<{
     chronicBySport: ChronicBySport;
     guardrails: Guardrails;
     fitnessCurve: FitnessCurve;
+    zones: Zones;
     weekly: Week[];
     recentActivities: Activity[];
     todayPlan: TodayPlan | null;
@@ -174,6 +195,40 @@ const chronicSplit = computed(() => {
         other: `${(other / base) * 100}%`,
     };
 });
+
+const ZONE_KEYS = ['1', '2', '3', '4', '5'];
+const zoneColors: Record<string, string> = {
+    '1': 'bg-sky-300',
+    '2': 'bg-sky-500',
+    '3': 'bg-amber-400',
+    '4': 'bg-orange-500',
+    '5': 'bg-red-500',
+};
+
+const maxZoneWeekly = computed(() =>
+    Math.max(1, ...props.zones.weekly.map((w) => w.total)),
+);
+
+function zoneHeight(week: WeekZones, zone: string): string {
+    return `${((week.zones[zone] ?? 0) / maxZoneWeekly.value) * 100}%`;
+}
+
+const hasZones = computed(() => props.zones.weekly.some((w) => w.total > 0));
+
+const polarizationVerdict = computed<{ label: string; class: string }>(() => {
+    switch (props.zones.polarization.verdict) {
+        case 'on_target':
+            return { label: 'Polarized', class: 'text-primary' };
+        case 'too_much_intensity':
+            return { label: 'Too much intensity', class: 'text-amber-500' };
+        default:
+            return { label: 'Not enough data', class: 'text-muted-foreground' };
+    }
+});
+
+function polarPct(value: number | null): string {
+    return value === null ? '0%' : `${value}%`;
+}
 
 const maxWeekly = computed(() =>
     Math.max(1, ...props.weekly.map((w) => w.total)),
@@ -826,6 +881,108 @@ function duration(seconds: number | null): string {
                 >
                     Not enough history yet. Sync a few more days of activity to
                     see your fitness curve.
+                </p>
+            </section>
+
+            <!-- Intensity distribution -->
+            <section class="rounded-xl border bg-card p-5">
+                <div
+                    class="mb-4 flex flex-wrap items-baseline justify-between gap-2"
+                >
+                    <div>
+                        <h2 class="text-sm font-bold">
+                            Intensity distribution
+                        </h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            Time in HR zones · 80/20 over 4 weeks
+                        </p>
+                    </div>
+                    <span
+                        class="text-sm font-semibold"
+                        :class="polarizationVerdict.class"
+                    >
+                        {{ polarizationVerdict.label }}
+                    </span>
+                </div>
+
+                <template v-if="hasZones">
+                    <!-- Easy / moderate / hard split -->
+                    <div
+                        class="flex h-3 overflow-hidden rounded-full border bg-background"
+                    >
+                        <span
+                            class="bg-sky-500"
+                            :style="{
+                                width: polarPct(zones.polarization.easy_pct),
+                            }"
+                            title="Easy (Z1-2)"
+                        />
+                        <span
+                            class="bg-amber-400"
+                            :style="{
+                                width: polarPct(
+                                    zones.polarization.moderate_pct,
+                                ),
+                            }"
+                            title="Moderate (Z3)"
+                        />
+                        <span
+                            class="bg-red-500"
+                            :style="{
+                                width: polarPct(zones.polarization.hard_pct),
+                            }"
+                            title="Hard (Z4-5)"
+                        />
+                    </div>
+                    <div
+                        class="mt-2 flex justify-between text-[11px] text-muted-foreground"
+                    >
+                        <span
+                            ><span class="font-semibold text-foreground"
+                                >{{ zones.polarization.easy_pct ?? '—' }}%</span
+                            >
+                            easy</span
+                        >
+                        <span
+                            >{{ zones.polarization.moderate_pct ?? '—' }}%
+                            moderate</span
+                        >
+                        <span
+                            >{{ zones.polarization.hard_pct ?? '—' }}%
+                            hard</span
+                        >
+                    </div>
+
+                    <!-- Weekly zone stacks -->
+                    <div class="mt-6 flex h-28 items-end gap-2">
+                        <div
+                            v-for="week in zones.weekly"
+                            :key="week.week_start"
+                            class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                        >
+                            <div
+                                class="flex h-full w-full flex-col-reverse overflow-hidden rounded-md"
+                                :title="`${Math.round(week.total / 60)} min`"
+                            >
+                                <span
+                                    v-for="zone in ZONE_KEYS"
+                                    :key="zone"
+                                    class="w-full"
+                                    :class="zoneColors[zone]"
+                                    :style="{ height: zoneHeight(week, zone) }"
+                                />
+                            </div>
+                            <span class="text-[11px] text-muted-foreground">{{
+                                weekLabel(week.week_start)
+                            }}</span>
+                        </div>
+                    </div>
+                </template>
+                <p
+                    v-else
+                    class="py-10 text-center text-sm text-muted-foreground"
+                >
+                    No heart-rate zone data yet.
                 </p>
             </section>
 

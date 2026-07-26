@@ -12,6 +12,7 @@ use App\Services\Training\FitnessCurveService;
 use App\Services\Training\LoadGuardrailService;
 use App\Services\Training\ReadinessService;
 use App\Services\Training\TrainingLoadService;
+use App\Services\Training\ZoneDistributionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -25,6 +26,7 @@ class DashboardController extends Controller
         private readonly ReadinessService $readiness,
         private readonly FitnessCurveService $fitnessCurve,
         private readonly LoadGuardrailService $guardrails,
+        private readonly ZoneDistributionService $zones,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -42,6 +44,10 @@ class DashboardController extends Controller
             'chronicBySport' => $this->load->chronicBySport($user, $today),
             'guardrails' => $this->guardrails->guardrails($user, $today),
             'fitnessCurve' => $this->fitnessCurve($user, $today),
+            'zones' => [
+                'weekly' => $this->zones->weekly($user, $today, 8),
+                'polarization' => $this->zones->polarization($user, $today, 4),
+            ],
             'weekly' => $this->load->weeklyBySport($user, $today, 8),
             'recentActivities' => $this->recentActivities($user),
             'todayPlan' => $this->todayPlan($user->plannedWorkouts()->whereDate('date', $today->toDateString())->first()),

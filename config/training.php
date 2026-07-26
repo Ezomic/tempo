@@ -40,4 +40,11 @@ return [
         'durations_s' => [60, 300, 600, 1200, 1800, 3600],
     ],
 
+    /*
+    | Share of easy time (HR zones 1-2) that counts as a polarized week.
+    */
+    'polarization' => [
+        'easy_target' => 80.0,
+    ],
+
 ];
