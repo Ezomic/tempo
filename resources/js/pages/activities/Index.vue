@@ -74,8 +74,10 @@ function day(iso: string): string {
         </p>
 
         <div v-else class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead class="bg-muted/50 text-left text-muted-foreground">
+            <table class="w-full text-sm tabular-nums">
+                <thead
+                    class="bg-muted/50 text-left font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase"
+                >
                     <tr>
                         <th class="px-4 py-2 font-medium">Date</th>
                         <th class="px-4 py-2 font-medium">Sport</th>
