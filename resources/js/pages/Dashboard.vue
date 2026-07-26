@@ -144,6 +144,21 @@ interface GoalCard {
     progress: { status: string; target_date: string; days_left: number };
 }
 
+interface TaperFactor {
+    key: string;
+    label: string;
+    state: string;
+    detail: string;
+}
+
+interface Taper {
+    race_date: string;
+    days_to_race: number;
+    verdict: string;
+    summary: string;
+    factors: TaperFactor[];
+}
+
 interface AdherenceWeek {
     week_start: string;
     total: number;
@@ -169,6 +184,7 @@ const props = defineProps<{
     recentActivities: Activity[];
     racePredictions: RacePrediction[];
     goals: GoalCard[];
+    taper: Taper | null;
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -379,6 +395,24 @@ const goalStatusStyle: Record<string, { label: string; class: string }> = {
 function goalStatus(status: string): { label: string; class: string } {
     return goalStatusStyle[status] ?? goalStatusStyle.unknown;
 }
+
+const factorStateStyle: Record<string, string> = {
+    good: 'text-emerald-600 dark:text-emerald-400',
+    watch: 'text-amber-600 dark:text-amber-400',
+    off: 'text-red-600 dark:text-red-400',
+};
+
+const factorDot: Record<string, string> = {
+    good: 'bg-emerald-500',
+    watch: 'bg-amber-500',
+    off: 'bg-red-500',
+};
+
+const taperBanner: Record<string, string> = {
+    good: 'border-emerald-500/40 bg-emerald-500/10',
+    watch: 'border-amber-500/40 bg-amber-500/10',
+    off: 'border-red-500/40 bg-red-500/10',
+};
 
 function km(m: number | null): string {
     return m === null ? '—' : `${(m / 1000).toFixed(1)} km`;
@@ -1108,6 +1142,43 @@ function duration(seconds: number | null): string {
                 >
                     No heart-rate zone data yet.
                 </p>
+            </section>
+
+            <!-- Taper readiness (race week) -->
+            <section
+                v-if="taper"
+                class="rounded-xl border p-5"
+                :class="taperBanner[taper.verdict]"
+            >
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <h2 class="text-sm font-bold">Taper readiness</h2>
+                    <span class="text-xs text-muted-foreground"
+                        >Race {{ taper.race_date }}</span
+                    >
+                </div>
+                <p class="mb-4 text-sm font-medium">{{ taper.summary }}</p>
+                <ul class="space-y-2">
+                    <li
+                        v-for="factor in taper.factors"
+                        :key="factor.key"
+                        class="flex items-start gap-2 text-sm"
+                    >
+                        <span
+                            class="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                            :class="factorDot[factor.state]"
+                        />
+                        <span>
+                            <span
+                                class="font-medium"
+                                :class="factorStateStyle[factor.state]"
+                                >{{ factor.label }}:</span
+                            >
+                            <span class="text-muted-foreground">
+                                {{ factor.detail }}</span
+                            >
+                        </span>
+                    </li>
+                </ul>
             </section>
 
             <!-- Goals -->
