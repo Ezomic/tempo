@@ -20,6 +20,7 @@ use App\Services\Training\RacePredictorService;
 use App\Services\Training\ReadinessService;
 use App\Services\Training\TaperReadinessService;
 use App\Services\Training\TrainingLoadService;
+use App\Services\Training\ZoneCalibrationService;
 use App\Services\Training\ZoneDistributionService;
 use App\Services\Weather\WeatherService;
 use Carbon\CarbonImmutable;
@@ -44,6 +45,7 @@ class DashboardController extends Controller
         private readonly TaperReadinessService $taper,
         private readonly EfficiencyFactorService $efficiency,
         private readonly CardiacCostService $cardiacCost,
+        private readonly ZoneCalibrationService $zoneCalibration,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -75,6 +77,7 @@ class DashboardController extends Controller
             'taper' => $this->taper->forNextRace($user, $today),
             'efficiencyTrend' => $this->efficiency->weeklyTrend($user, $today, 12),
             'cardiacCostTrend' => $this->cardiacCost->weeklyTrend($user, $today, 12),
+            'zoneCalibration' => $this->zoneCalibration->suggestion($user, $today),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
             'todayWeather' => $todayPlan !== null
