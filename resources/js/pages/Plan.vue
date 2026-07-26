@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { index as planIndex } from '@/routes/plan';
+import { index as planIndex, calendar as planCalendar } from '@/routes/plan';
 import { edit as editRoutes } from '@/routes/routes';
 import type {
     FormStep,
@@ -138,11 +138,19 @@ function stepLine(step: WorkoutStep): string {
     <Head title="Plan" />
 
     <div class="flex flex-1 flex-col gap-4 p-4">
-        <Heading
-            variant="small"
-            title="Plan"
-            description="Plan workouts and push them to your calendar."
-        />
+        <div class="flex flex-wrap items-start justify-between gap-2">
+            <Heading
+                variant="small"
+                title="Plan"
+                description="Plan workouts and push them to your calendar."
+            />
+            <Link
+                :href="planCalendar()"
+                class="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+            >
+                Calendar editor
+            </Link>
+        </div>
 
         <div
             v-if="status"
