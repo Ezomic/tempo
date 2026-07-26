@@ -8,6 +8,7 @@ use App\Models\Activity;
 use App\Models\PlannedWorkout;
 use App\Models\User;
 use App\Services\Training\FitnessCurveService;
+use App\Services\Training\LoadGuardrailService;
 use App\Services\Training\ReadinessService;
 use App\Services\Training\TrainingLoadService;
 use Carbon\CarbonImmutable;
@@ -21,6 +22,7 @@ class DashboardController extends Controller
         private readonly TrainingLoadService $load,
         private readonly ReadinessService $readiness,
         private readonly FitnessCurveService $fitnessCurve,
+        private readonly LoadGuardrailService $guardrails,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -35,6 +37,7 @@ class DashboardController extends Controller
             'garminConnected' => $user->garminConnection?->isConnected() ?? false,
             'readiness' => $this->readiness->snapshot($user, $load['ratio']),
             'load' => $load,
+            'guardrails' => $this->guardrails->guardrails($user, $today),
             'fitnessCurve' => $this->fitnessCurve($user, $today),
             'weekly' => $this->load->weeklyBySport($user, $today, 8),
             'recentActivities' => $user->activities()
