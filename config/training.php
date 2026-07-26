@@ -87,6 +87,15 @@ return [
     ],
 
     /*
+    | Efficiency factor (mean speed / mean HR). Same steadiness gate as
+    | decoupling: a minimum duration and a cap on speed variability.
+    */
+    'efficiency' => [
+        'min_seconds' => 1200,
+        'max_speed_cov' => 0.35,
+    ],
+
+    /*
     | Forecast horizon (days) and the heat/wind thresholds that warn on an
     | outdoor session.
     */

@@ -144,6 +144,11 @@ interface GoalCard {
     progress: { status: string; target_date: string; days_left: number };
 }
 
+interface EfPoint {
+    week_start: string;
+    ef: number;
+}
+
 interface TaperFactor {
     key: string;
     label: string;
@@ -185,6 +190,7 @@ const props = defineProps<{
     racePredictions: RacePrediction[];
     goals: GoalCard[];
     taper: Taper | null;
+    efficiencyTrend: Record<string, EfPoint[]>;
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -394,6 +400,34 @@ const goalStatusStyle: Record<string, { label: string; class: string }> = {
 
 function goalStatus(status: string): { label: string; class: string } {
     return goalStatusStyle[status] ?? goalStatusStyle.unknown;
+}
+
+const efficiencySports = computed(() =>
+    Object.entries(props.efficiencyTrend)
+        .filter(([, points]) => points.length >= 2)
+        .map(([sport, points]) => ({ sport, points })),
+);
+
+function efSpark(points: EfPoint[]): string {
+    const values = points.map((p) => p.ef);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
+
+    return points
+        .map((p, i) => {
+            const x = (i / (points.length - 1)) * 100;
+            const y = 100 - ((p.ef - min) / span) * 100;
+
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(' ');
+}
+
+function efDelta(points: EfPoint[]): number {
+    return (
+        Math.round((points[points.length - 1].ef - points[0].ef) * 100) / 100
+    );
 }
 
 const factorStateStyle: Record<string, string> = {
@@ -1214,6 +1248,58 @@ function duration(seconds: number | null): string {
                         </span>
                     </li>
                 </ul>
+            </section>
+
+            <!-- Efficiency factor trend -->
+            <section
+                v-if="efficiencySports.length"
+                class="rounded-xl border bg-card p-5"
+            >
+                <div class="mb-4">
+                    <h2 class="text-sm font-bold">Efficiency factor</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Speed per heartbeat, weekly · rising means fitter
+                    </p>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div
+                        v-for="entry in efficiencySports"
+                        :key="entry.sport"
+                        class="rounded-lg border bg-background p-3"
+                    >
+                        <div class="mb-2 flex items-baseline justify-between">
+                            <span class="text-xs font-medium capitalize">{{
+                                entry.sport
+                            }}</span>
+                            <span
+                                class="text-xs font-semibold tabular-nums"
+                                :class="
+                                    efDelta(entry.points) >= 0
+                                        ? 'text-emerald-500'
+                                        : 'text-red-500'
+                                "
+                            >
+                                {{ efDelta(entry.points) >= 0 ? '+' : ''
+                                }}{{ efDelta(entry.points) }}
+                            </span>
+                        </div>
+                        <svg
+                            viewBox="0 0 100 40"
+                            preserveAspectRatio="none"
+                            class="h-12 w-full"
+                        >
+                            <polyline
+                                :points="efSpark(entry.points)"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="text-primary"
+                                vector-effect="non-scaling-stroke"
+                                transform="scale(1, 0.4)"
+                            />
+                        </svg>
+                    </div>
+                </div>
             </section>
 
             <!-- Race predictions -->
