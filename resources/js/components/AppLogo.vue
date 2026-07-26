@@ -33,7 +33,7 @@
     </div>
     <div class="ml-1 grid flex-1 text-left">
         <span class="truncate text-sm font-extrabold tracking-tight lowercase"
-            >tempo</span
+            >tem<span class="text-primary">po</span></span
         >
     </div>
 </template>

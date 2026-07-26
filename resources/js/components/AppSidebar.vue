@@ -39,56 +39,31 @@ import { index as wellnessIndex } from '@/routes/wellness';
 import { index as workoutsIndex } from '@/routes/workouts';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const navGroups: { label: string; items: NavItem[] }[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
+        label: 'Train',
+        items: [
+            { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+            { title: 'Activities', href: activitiesIndex(), icon: Activity },
+            { title: 'Plan', href: planIndex(), icon: CalendarDays },
+            { title: 'Workouts', href: workoutsIndex(), icon: Dumbbell },
+        ],
     },
     {
-        title: 'Activities',
-        href: activitiesIndex(),
-        icon: Activity,
+        label: 'Analyse',
+        items: [
+            { title: 'Records', href: recordsIndex(), icon: Trophy },
+            { title: 'Leaderboard', href: leaderboardIndex(), icon: Medal },
+            { title: 'Wellness', href: wellnessIndex(), icon: HeartPulse },
+            { title: 'Recap', href: recapIndex(), icon: CalendarRange },
+        ],
     },
     {
-        title: 'Plan',
-        href: planIndex(),
-        icon: CalendarDays,
-    },
-    {
-        title: 'Workouts',
-        href: workoutsIndex(),
-        icon: Dumbbell,
-    },
-    {
-        title: 'Records',
-        href: recordsIndex(),
-        icon: Trophy,
-    },
-    {
-        title: 'Leaderboard',
-        href: leaderboardIndex(),
-        icon: Medal,
-    },
-    {
-        title: 'Recap',
-        href: recapIndex(),
-        icon: CalendarRange,
-    },
-    {
-        title: 'Goals',
-        href: goalsIndex(),
-        icon: Target,
-    },
-    {
-        title: 'Pacing',
-        href: pacingIndex(),
-        icon: Gauge,
-    },
-    {
-        title: 'Wellness',
-        href: wellnessIndex(),
-        icon: HeartPulse,
+        label: 'Goals & tools',
+        items: [
+            { title: 'Goals', href: goalsIndex(), icon: Target },
+            { title: 'Pacing', href: pacingIndex(), icon: Gauge },
+        ],
     },
 ];
 
@@ -121,7 +96,7 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :groups="navGroups" />
         </SidebarContent>
 
         <SidebarFooter>
