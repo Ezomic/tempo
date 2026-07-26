@@ -79,6 +79,14 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * @return HasMany<DailyLoadMetric, $this>
+     */
+    public function dailyLoadMetrics(): HasMany
+    {
+        return $this->hasMany(DailyLoadMetric::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

@@ -14,6 +14,7 @@ use App\Services\Garmin\FitParser;
 use App\Services\Garmin\GarminClient;
 use App\Services\Garmin\StreamBuilder;
 use App\Services\Garmin\TrimpCalculator;
+use App\Services\Training\FitnessCurveService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -30,6 +31,7 @@ class SyncGarminAction
         private readonly FitParser $fitParser,
         private readonly TrimpCalculator $trimp,
         private readonly StreamBuilder $streamBuilder,
+        private readonly FitnessCurveService $fitnessCurve,
     ) {}
 
     public function handle(GarminConnection $connection): void
@@ -59,6 +61,8 @@ class SyncGarminAction
 
             $wellnessStart = $lastSynced?->subDay() ?? $now->subDays(self::FIRST_SYNC_WELLNESS_DAYS);
             $this->syncWellness($connection, $wellnessStart->startOfDay(), $now->startOfDay());
+
+            $this->fitnessCurve->recompute($connection->user, $now);
 
             $connection->update([
                 'sync_status' => GarminConnection::SYNC_IDLE,
