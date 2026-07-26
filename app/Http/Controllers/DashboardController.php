@@ -7,10 +7,12 @@ namespace App\Http\Controllers;
 use App\Enums\WorkoutType;
 use App\Models\Activity;
 use App\Models\PlannedWorkout;
+use App\Models\TrainingGoal;
 use App\Models\User;
 use App\Services\Training\AdaptivePlanService;
 use App\Services\Training\AdherenceService;
 use App\Services\Training\FitnessCurveService;
+use App\Services\Training\GoalProgressService;
 use App\Services\Training\LoadGuardrailService;
 use App\Services\Training\RacePredictorService;
 use App\Services\Training\ReadinessService;
@@ -35,6 +37,7 @@ class DashboardController extends Controller
         private readonly AdherenceService $adherence,
         private readonly WeatherService $weather,
         private readonly RacePredictorService $predictor,
+        private readonly GoalProgressService $goals,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -62,6 +65,7 @@ class DashboardController extends Controller
             'adherence' => $this->adherence->weekly($user, $today, 4),
             'recentActivities' => $this->recentActivities($user),
             'racePredictions' => $this->predictor->predictions($user),
+            'goals' => $this->dashboardGoals($user, $today),
             'todayPlan' => $this->todayPlan($todayPlan),
             'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
             'todayWeather' => $todayPlan !== null
@@ -144,6 +148,25 @@ class DashboardController extends Controller
             'history' => $history,
             'projection' => $this->fitnessCurve->project($user, $today, 14),
         ];
+    }
+
+    /**
+     * Active goals (target date still ahead) with their live status.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function dashboardGoals(User $user, CarbonImmutable $today): array
+    {
+        return array_values($user->trainingGoals()
+            ->whereDate('target_date', '>=', $today->toDateString())
+            ->orderBy('target_date')
+            ->get()
+            ->map(fn (TrainingGoal $goal): array => [
+                'id' => $goal->id,
+                'type_label' => $goal->type->label(),
+                'progress' => $this->goals->evaluate($goal, $user, $today),
+            ])
+            ->all());
     }
 
     /**

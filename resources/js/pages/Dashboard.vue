@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 import { dashboard } from '@/routes';
 import { index as activitiesIndex, show } from '@/routes/activities';
 import { edit as garminSettings } from '@/routes/garmin';
+import { index as goalsIndex } from '@/routes/goals';
 import {
     index as planIndex,
     downgrade,
@@ -137,6 +138,12 @@ interface RacePrediction {
     source: string;
 }
 
+interface GoalCard {
+    id: number;
+    type_label: string;
+    progress: { status: string; target_date: string; days_left: number };
+}
+
 interface AdherenceWeek {
     week_start: string;
     total: number;
@@ -161,6 +168,7 @@ const props = defineProps<{
     adherence: AdherenceWeek[];
     recentActivities: Activity[];
     racePredictions: RacePrediction[];
+    goals: GoalCard[];
     todayPlan: TodayPlan | null;
     adaptiveSuggestion: AdaptiveSuggestion | null;
     todayWeather: TodayWeather | null;
@@ -353,6 +361,23 @@ function raceTime(seconds: number): string {
     const ss = String(s).padStart(2, '0');
 
     return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+const goalStatusStyle: Record<string, { label: string; class: string }> = {
+    ahead: { label: 'Ahead', class: 'bg-primary/15 text-primary' },
+    on_track: {
+        label: 'On track',
+        class: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    },
+    behind: {
+        label: 'Behind',
+        class: 'bg-red-500/15 text-red-600 dark:text-red-400',
+    },
+    unknown: { label: 'No data', class: 'bg-muted text-muted-foreground' },
+};
+
+function goalStatus(status: string): { label: string; class: string } {
+    return goalStatusStyle[status] ?? goalStatusStyle.unknown;
 }
 
 function km(m: number | null): string {
@@ -1083,6 +1108,41 @@ function duration(seconds: number | null): string {
                 >
                     No heart-rate zone data yet.
                 </p>
+            </section>
+
+            <!-- Goals -->
+            <section v-if="goals.length" class="rounded-xl border bg-card p-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-sm font-bold">Goals</h2>
+                    <Link
+                        :href="goalsIndex().url"
+                        class="text-xs text-muted-foreground hover:text-foreground"
+                        >Manage</Link
+                    >
+                </div>
+                <ul class="space-y-2">
+                    <li
+                        v-for="goal in goals"
+                        :key="goal.id"
+                        class="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2"
+                    >
+                        <div>
+                            <div class="text-sm font-medium">
+                                {{ goal.type_label }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                by {{ goal.progress.target_date }} ·
+                                {{ goal.progress.days_left }} days left
+                            </div>
+                        </div>
+                        <span
+                            class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                            :class="goalStatus(goal.progress.status).class"
+                        >
+                            {{ goalStatus(goal.progress.status).label }}
+                        </span>
+                    </li>
+                </ul>
             </section>
 
             <!-- Race predictions -->
