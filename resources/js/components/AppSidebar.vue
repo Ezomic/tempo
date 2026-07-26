@@ -6,6 +6,7 @@ import {
     CalendarDays,
     FolderGit2,
     LayoutGrid,
+    Trophy,
 } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -23,6 +24,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as activitiesIndex } from '@/routes/activities';
 import { index as planIndex } from '@/routes/plan';
+import { index as recordsIndex } from '@/routes/records';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -40,6 +42,11 @@ const mainNavItems: NavItem[] = [
         title: 'Plan',
         href: planIndex(),
         icon: CalendarDays,
+    },
+    {
+        title: 'Records',
+        href: recordsIndex(),
+        icon: Trophy,
     },
 ];
 

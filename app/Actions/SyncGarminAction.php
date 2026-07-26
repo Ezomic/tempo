@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\DataObjects\ActivitySummary;
 use App\DataObjects\ParsedActivity;
+use App\Enums\Sport;
 use App\Models\Activity;
 use App\Models\GarminConnection;
 use App\Models\HrZoneSettings;
@@ -14,7 +15,9 @@ use App\Services\Garmin\FitParser;
 use App\Services\Garmin\GarminClient;
 use App\Services\Garmin\StreamBuilder;
 use App\Services\Garmin\TrimpCalculator;
+use App\Services\Training\EffortAnalyzer;
 use App\Services\Training\FitnessCurveService;
+use App\Services\Training\PerformanceRecordService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -31,7 +34,9 @@ class SyncGarminAction
         private readonly FitParser $fitParser,
         private readonly TrimpCalculator $trimp,
         private readonly StreamBuilder $streamBuilder,
+        private readonly EffortAnalyzer $effort,
         private readonly FitnessCurveService $fitnessCurve,
+        private readonly PerformanceRecordService $records,
     ) {}
 
     public function handle(GarminConnection $connection): void
@@ -63,6 +68,7 @@ class SyncGarminAction
             $this->syncWellness($connection, $wellnessStart->startOfDay(), $now->startOfDay());
 
             $this->fitnessCurve->recompute($connection->user, $now);
+            $this->records->recompute($connection->user);
 
             $connection->update([
                 'sync_status' => GarminConnection::SYNC_IDLE,
@@ -109,6 +115,13 @@ class SyncGarminAction
             if ($parsed->hasHeartRate()) {
                 $attributes['trimp'] = $this->trimp->trimp($parsed->hrSamples, $settings);
                 $attributes['hr_zone_seconds'] = $this->trimp->zoneSeconds($parsed->hrSamples, $settings);
+            }
+
+            if ($parsed->speedSamples !== []) {
+                if ($summary->sport === Sport::Run) {
+                    $attributes['best_efforts'] = $this->effort->bestEfforts($parsed->speedSamples);
+                }
+                $attributes['mean_max'] = $this->effort->meanMax($parsed->speedSamples);
             }
 
             $streamsPath = $this->archiveStreams($connection, $summary->externalId, $parsed);
