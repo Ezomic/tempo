@@ -6,12 +6,15 @@ namespace App\Services\Training;
 
 use App\Models\PlannedWorkout;
 use App\Models\User;
+use App\Services\Chronos\ChronosClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class AutoRescheduleService
 {
+    public function __construct(private readonly ChronosClient $chronos) {}
+
     /**
      * When a key session earlier this week was missed, propose the best open
      * day in the rest of the week to move it to, keeping hard days apart.
@@ -34,7 +37,8 @@ class AutoRescheduleService
             return null;
         }
 
-        $proposed = $this->bestOpenDay($week, $missed, $today, $weekEnd);
+        $busy = array_flip($this->chronos->busyDays($today->toDateString(), $weekEnd->toDateString()));
+        $proposed = $this->bestOpenDay($week, $missed, $today, $weekEnd, $busy);
         if ($proposed === null) {
             return null;
         }
@@ -84,8 +88,9 @@ class AutoRescheduleService
 
     /**
      * @param  Collection<int, PlannedWorkout>  $week
+     * @param  array<string, int>  $busy
      */
-    private function bestOpenDay($week, PlannedWorkout $missed, CarbonImmutable $today, CarbonImmutable $weekEnd): ?CarbonImmutable
+    private function bestOpenDay($week, PlannedWorkout $missed, CarbonImmutable $today, CarbonImmutable $weekEnd, array $busy): ?CarbonImmutable
     {
         $occupied = [];
         $hardDates = [];
@@ -102,7 +107,7 @@ class AutoRescheduleService
 
         for ($cursor = $today->startOfDay(); $cursor->lessThanOrEqualTo($weekEnd); $cursor = $cursor->addDay()) {
             $date = $cursor->toDateString();
-            if (isset($occupied[$date])) {
+            if (isset($occupied[$date]) || isset($busy[$date])) {
                 continue;
             }
             if (isset($hardDates[$cursor->subDay()->toDateString()]) || isset($hardDates[$cursor->addDay()->toDateString()])) {

@@ -34,10 +34,13 @@ class GenerateTrainingPlanAction
      * Build a periodized plan from today to the race, respecting current
      * fitness and ramping weekly load within safe bounds.
      *
+     * @param  list<string>  $busyDates  Y-m-d the athlete is booked; key sessions avoid them
      * @return list<array{date: string, workout_type: string|null, duration_min: int, title: string, phase: string}>
      */
-    public function handle(CarbonImmutable $start, CarbonImmutable $raceDate, int $sessionsPerWeek, float $currentCtl): array
+    public function handle(CarbonImmutable $start, CarbonImmutable $raceDate, int $sessionsPerWeek, float $currentCtl, array $busyDates = []): array
     {
+        $busy = array_flip($busyDates);
+
         $firstMonday = $start->startOfWeek(Carbon::MONDAY);
         $raceMonday = $raceDate->startOfWeek(Carbon::MONDAY);
         $totalWeeks = (int) $firstMonday->diffInWeeks($raceMonday) + 1;
@@ -52,7 +55,7 @@ class GenerateTrainingPlanAction
         for ($w = 0; $w < $totalWeeks; $w++) {
             $weekStart = $firstMonday->addWeeks($w);
             $phase = $this->phase($totalWeeks - $w, $totalWeeks);
-            $sessions = array_merge($sessions, $this->weekSessions($weekStart, $raceDate, $phase, $sessionsPerWeek, $loads[$w], $start));
+            $sessions = array_merge($sessions, $this->weekSessions($weekStart, $raceDate, $phase, $sessionsPerWeek, $loads[$w], $start, $busy));
         }
 
         $sessions[] = [
@@ -103,9 +106,10 @@ class GenerateTrainingPlanAction
     }
 
     /**
+     * @param  array<string, int>  $busy
      * @return list<array{date: string, workout_type: string|null, duration_min: int, title: string, phase: string}>
      */
-    private function weekSessions(CarbonImmutable $weekStart, CarbonImmutable $raceDate, string $phase, int $sessionsPerWeek, float $weeklyLoad, CarbonImmutable $start): array
+    private function weekSessions(CarbonImmutable $weekStart, CarbonImmutable $raceDate, string $phase, int $sessionsPerWeek, float $weeklyLoad, CarbonImmutable $start, array $busy): array
     {
         $types = array_slice(self::PHASE_SESSIONS[$phase], 0, $sessionsPerWeek);
         $totalWeight = array_sum(array_map(fn (WorkoutType $t): float => self::SESSION_WEIGHT[$t->value], $types));
@@ -119,6 +123,12 @@ class GenerateTrainingPlanAction
             $date = $weekStart->addDays((self::DAY_ORDER[$i] - Carbon::MONDAY + 7) % 7);
             if ($date->lessThan($start->startOfDay()) || $date->greaterThanOrEqualTo($raceDate)) {
                 continue; // don't plan in the past or on/after race day
+            }
+
+            // A key session on a booked day is eased to recovery so it doesn't
+            // collide with a full calendar.
+            if (isset($busy[$date->toDateString()]) && $type->isHard()) {
+                $type = WorkoutType::Recovery;
             }
 
             $load = $weeklyLoad * (self::SESSION_WEIGHT[$type->value] / $totalWeight);
