@@ -6,16 +6,20 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreatePlannedWorkoutAction;
 use App\Actions\DowngradeWorkoutAction;
+use App\Actions\GenerateTrainingPlanAction;
 use App\Actions\PushPlannedWorkoutAction;
 use App\Actions\PushWorkoutToGarminAction;
 use App\Enums\Intensity;
+use App\Enums\Sport;
 use App\Enums\WorkoutType;
+use App\Http\Requests\GeneratePlanRequest;
 use App\Http\Requests\StorePlannedWorkoutRequest;
 use App\Models\PlannedWorkout;
 use App\Models\PlannedWorkoutStep;
 use App\Services\Chronos\ChronosClient;
 use App\Services\Routing\RouteGenerator;
 use App\Services\Training\WorkoutDescriber;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -131,6 +135,58 @@ class PlanController extends Controller
         $plannedWorkout->delete();
 
         return back()->with('status', 'Workout removed.');
+    }
+
+    public function generator(): Response
+    {
+        return Inertia::render('plan/Generate', [
+            'sports' => [
+                ['value' => Sport::Run->value, 'label' => 'Run'],
+                ['value' => Sport::Bike->value, 'label' => 'Bike'],
+            ],
+        ]);
+    }
+
+    public function generate(GeneratePlanRequest $request, GenerateTrainingPlanAction $generator): RedirectResponse
+    {
+        $user = $request->user();
+        $today = CarbonImmutable::now();
+        $raceDate = CarbonImmutable::parse((string) $request->validated('race_date'));
+        $sport = Sport::from((string) $request->validated('sport'));
+        $sessionsPerWeek = (int) $request->validated('sessions_per_week');
+        $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0);
+
+        $specs = $generator->handle($today, $raceDate, $sessionsPerWeek, $currentCtl);
+
+        // Replace previously generated future sessions, but keep manual ones.
+        $user->plannedWorkouts()
+            ->whereNotNull('generated_at')
+            ->whereDate('date', '>=', $today->toDateString())
+            ->delete();
+
+        $manualDates = array_flip($user->plannedWorkouts()
+            ->whereNull('generated_at')
+            ->whereDate('date', '>=', $today->toDateString())
+            ->get(['date'])
+            ->map(fn (PlannedWorkout $workout): string => $workout->date->toDateString())
+            ->all());
+
+        foreach ($specs as $spec) {
+            if (isset($manualDates[$spec['date']])) {
+                continue; // don't clobber a day the athlete planned by hand
+            }
+
+            $user->plannedWorkouts()->create([
+                'date' => $spec['date'],
+                'sport' => $sport,
+                'workout_type' => $spec['workout_type'],
+                'title' => $spec['title'],
+                'duration_min' => $spec['duration_min'] > 0 ? $spec['duration_min'] : null,
+                'generated_at' => now(),
+            ]);
+        }
+
+        return to_route('plan.index')->with('status', 'Training plan generated.');
     }
 
     public function downgrade(Request $request, PlannedWorkout $plannedWorkout, DowngradeWorkoutAction $action, PushPlannedWorkoutAction $push): RedirectResponse

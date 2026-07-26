@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $garmin_pushed_at
  * @property string|null $downgraded_from
  * @property Carbon|null $adapted_at
+ * @property Carbon|null $generated_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -52,6 +53,7 @@ use Illuminate\Support\Carbon;
     'garmin_pushed_at',
     'downgraded_from',
     'adapted_at',
+    'generated_at',
 ])]
 class PlannedWorkout extends Model
 {
@@ -104,6 +106,7 @@ class PlannedWorkout extends Model
             'pushed_at' => 'datetime',
             'garmin_pushed_at' => 'datetime',
             'adapted_at' => 'datetime',
+            'generated_at' => 'datetime',
         ];
     }
 }
