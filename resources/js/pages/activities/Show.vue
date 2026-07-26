@@ -3,7 +3,10 @@ import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { index as activitiesIndex } from '@/routes/activities';
+import {
+    index as activitiesIndex,
+    exportMethod as activityExport,
+} from '@/routes/activities';
 
 interface Activity {
     id: number;
@@ -252,12 +255,23 @@ const stats = computed(() => [
                 :title="sportLabel(activity.sport)"
                 :description="new Date(activity.started_at).toLocaleString()"
             />
-            <Link
-                :href="activitiesIndex()"
-                class="text-sm text-muted-foreground hover:underline"
-            >
-                Back to activities
-            </Link>
+            <div class="flex items-center gap-3">
+                <a
+                    v-for="format in ['fit', 'tcx', 'csv']"
+                    :key="format"
+                    :href="
+                        activityExport({ activity: activity.id, format }).url
+                    "
+                    class="rounded-md border px-2.5 py-1 text-xs font-medium uppercase hover:bg-muted"
+                    >{{ format }}</a
+                >
+                <Link
+                    :href="activitiesIndex()"
+                    class="text-sm text-muted-foreground hover:underline"
+                >
+                    Back to activities
+                </Link>
+            </div>
         </div>
 
         <Card>
