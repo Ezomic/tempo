@@ -27,6 +27,7 @@ class RecordsController extends Controller
             'sport' => $sport->value,
             'availableSports' => $this->availableSports($user),
             'fitnessMarkers' => $threshold->trend($user, CarbonImmutable::now(), 16),
+            'shareToken' => $user->public_profile_token,
         ]);
     }
 
