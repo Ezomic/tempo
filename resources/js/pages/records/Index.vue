@@ -229,7 +229,9 @@ function sportLabel(sport: string): string {
             >
                 <div>
                     <h2 class="text-sm font-bold">Pace curve</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                    >
                         Best sustained pace by duration
                     </p>
                 </div>
@@ -301,7 +303,9 @@ function sportLabel(sport: string): string {
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 class="text-sm font-bold">Public profile</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                    >
                         Share a read-only snapshot: current form, PRs and a
                         fitness sparkline. No wellness or activity detail.
                     </p>
@@ -344,7 +348,9 @@ function sportLabel(sport: string): string {
             >
                 <div>
                     <h2 class="text-sm font-bold">Fitness markers</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p
+                        class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                    >
                         VO2max and derived threshold pace, weekly
                     </p>
                 </div>
