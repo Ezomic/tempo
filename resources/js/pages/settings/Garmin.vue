@@ -101,7 +101,7 @@ const awaitingMfa = computed(() => !!props.login_token);
                         </Badge>
                         <span
                             v-if="connection?.last_synced_at_diff"
-                            class="text-muted-foreground"
+                            class="font-mono text-xs tracking-wide text-muted-foreground"
                         >
                             Last synced {{ connection.last_synced_at_diff }}
                         </span>
