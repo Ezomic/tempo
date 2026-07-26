@@ -24,11 +24,37 @@ interface Recap {
     ctl_end: number;
 }
 
+interface Consistency {
+    days: { date: string; load: number; level: number }[];
+    current_streak: number;
+    longest_streak: number;
+    active_days: number;
+}
+
 const props = defineProps<{
     recap: Recap;
     period: string;
     range: { from: string; to: string };
+    consistency: Consistency;
 }>();
+
+const levelClass: Record<number, string> = {
+    0: 'bg-muted',
+    1: 'bg-primary/25',
+    2: 'bg-primary/50',
+    3: 'bg-primary/75',
+    4: 'bg-primary',
+};
+
+const heatmapWeeks = computed(() => {
+    const weeks: { date: string; load: number; level: number }[][] = [];
+
+    for (let i = 0; i < props.consistency.days.length; i += 7) {
+        weeks.push(props.consistency.days.slice(i, i + 7));
+    }
+
+    return weeks;
+});
 
 defineOptions({
     layout: {
@@ -98,6 +124,58 @@ const sports = computed(() => Object.entries(props.recap.by_sport));
                 </div>
             </div>
         </div>
+
+        <!-- Consistency heatmap -->
+        <section class="rounded-xl border bg-card p-5">
+            <div
+                class="mb-4 flex flex-wrap items-baseline justify-between gap-2"
+            >
+                <div>
+                    <h2 class="text-sm font-bold">Consistency</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Training days over the last year
+                    </p>
+                </div>
+                <div class="flex gap-4 text-xs">
+                    <span
+                        ><span class="font-semibold text-foreground">{{
+                            consistency.current_streak
+                        }}</span>
+                        day streak</span
+                    >
+                    <span
+                        >longest
+                        <span class="font-semibold text-foreground">{{
+                            consistency.longest_streak
+                        }}</span></span
+                    >
+                    <span
+                        ><span class="font-semibold text-foreground">{{
+                            consistency.active_days
+                        }}</span>
+                        active days</span
+                    >
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <div class="flex gap-1">
+                    <div
+                        v-for="(week, wi) in heatmapWeeks"
+                        :key="wi"
+                        class="flex flex-col gap-1"
+                    >
+                        <span
+                            v-for="day in week"
+                            :key="day.date"
+                            class="h-2.5 w-2.5 rounded-[2px]"
+                            :class="levelClass[day.level]"
+                            :title="`${day.date}: ${day.load}`"
+                        />
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <section v-if="sports.length" class="rounded-xl border bg-card p-5">
             <h2 class="mb-3 text-sm font-bold">By sport</h2>
