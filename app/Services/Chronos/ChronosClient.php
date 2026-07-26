@@ -58,4 +58,51 @@ final readonly class ChronosClient
             'url' => isset($json['url']) ? (string) $json['url'] : null,
         ];
     }
+
+    /**
+     * Update an existing all-day event in place (used when a planned workout
+     * moves or its prescription changes).
+     *
+     * @return array{id: string, url: string|null}
+     */
+    public function updateAllDayEvent(string $eventId, string $title, string $date, ?string $description): array
+    {
+        if (! $this->isConfigured()) {
+            throw new RuntimeException('Chronos integration is not configured.');
+        }
+
+        $response = Http::baseUrl($this->baseUrl)
+            ->withToken($this->token)
+            ->acceptJson()
+            ->timeout(15)
+            ->patch("/events/{$eventId}", [
+                'title' => $title,
+                'all_day' => true,
+                'starts_at' => $date,
+                'ends_at' => $date,
+                'description' => $description,
+            ])
+            ->throw();
+
+        $json = $response->json();
+
+        return [
+            'id' => (string) ($json['id'] ?? $eventId),
+            'url' => isset($json['url']) ? (string) $json['url'] : null,
+        ];
+    }
+
+    public function deleteEvent(string $eventId): void
+    {
+        if (! $this->isConfigured()) {
+            throw new RuntimeException('Chronos integration is not configured.');
+        }
+
+        Http::baseUrl($this->baseUrl)
+            ->withToken($this->token)
+            ->acceptJson()
+            ->timeout(15)
+            ->delete("/events/{$eventId}")
+            ->throw();
+    }
 }
