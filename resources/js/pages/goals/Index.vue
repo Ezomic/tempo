@@ -141,7 +141,9 @@ function distanceLabel(m: number): string {
                                     · {{ distanceLabel(goal.distance_m) }}</span
                                 >
                             </h2>
-                            <p class="mt-0.5 text-xs text-muted-foreground">
+                            <p
+                                class="mt-0.5 font-mono text-[11px] text-muted-foreground"
+                            >
                                 Target {{ targetLabel(goal) }} by
                                 {{ goal.progress.target_date }} ·
                                 {{ goal.progress.days_left }} days left

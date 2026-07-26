@@ -55,18 +55,22 @@ function distanceLabel(m: number): string {
         <div class="w-full max-w-lg space-y-6">
             <div class="text-center">
                 <h1 class="text-2xl font-bold">{{ profile.name }}</h1>
-                <p class="text-sm text-muted-foreground">Training snapshot</p>
+                <p
+                    class="font-mono text-xs tracking-wide text-muted-foreground"
+                >
+                    Training snapshot
+                </p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div class="rounded-xl border bg-card p-4 text-center">
-                    <div class="text-xs text-muted-foreground">Fitness</div>
+                    <div class="data-label">Fitness</div>
                     <div class="mt-1 text-2xl font-bold tabular-nums">
                         {{ profile.ctl ?? '-' }}
                     </div>
                 </div>
                 <div class="rounded-xl border bg-card p-4 text-center">
-                    <div class="text-xs text-muted-foreground">Form</div>
+                    <div class="data-label">Form</div>
                     <div class="mt-1 text-2xl font-bold tabular-nums">
                         {{
                             profile.form === null
@@ -78,9 +82,7 @@ function distanceLabel(m: number): string {
             </div>
 
             <div v-if="spark" class="rounded-xl border bg-card p-4">
-                <div class="mb-2 text-xs text-muted-foreground">
-                    Fitness, last 90 days
-                </div>
+                <div class="mb-2 data-label">Fitness, last 90 days</div>
                 <svg
                     viewBox="0 0 100 40"
                     preserveAspectRatio="none"
@@ -102,9 +104,7 @@ function distanceLabel(m: number): string {
                 v-if="profile.records.length"
                 class="rounded-xl border bg-card p-4"
             >
-                <div class="mb-2 text-xs text-muted-foreground">
-                    Personal bests
-                </div>
+                <div class="mb-2 data-label">Personal bests</div>
                 <ul class="space-y-1">
                     <li
                         v-for="record in profile.records"
