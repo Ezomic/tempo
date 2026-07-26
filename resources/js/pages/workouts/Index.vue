@@ -315,7 +315,7 @@ function stepSummary(step: Step): string {
                                 {{ template.name }}
                             </h2>
                             <p
-                                class="mt-0.5 text-xs text-muted-foreground capitalize"
+                                class="mt-0.5 font-mono text-[11px] text-muted-foreground capitalize"
                             >
                                 {{ template.sport
                                 }}<span v-if="template.workout_type">
