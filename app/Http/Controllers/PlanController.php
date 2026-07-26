@@ -18,6 +18,7 @@ use App\Models\PlannedWorkout;
 use App\Models\PlannedWorkoutStep;
 use App\Services\Chronos\ChronosClient;
 use App\Services\Routing\RouteGenerator;
+use App\Services\Training\AutoRescheduleService;
 use App\Services\Training\WorkoutDescriber;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -187,6 +188,15 @@ class PlanController extends Controller
         }
 
         return to_route('plan.index')->with('status', 'Training plan generated.');
+    }
+
+    public function reschedule(Request $request, AutoRescheduleService $reschedule): RedirectResponse
+    {
+        $applied = $reschedule->apply($request->user(), CarbonImmutable::now());
+
+        return $applied
+            ? back()->with('status', 'Session rescheduled.')
+            : back()->withErrors(['reschedule' => 'There is nothing to reschedule.']);
     }
 
     public function downgrade(Request $request, PlannedWorkout $plannedWorkout, DowngradeWorkoutAction $action, PushPlannedWorkoutAction $push): RedirectResponse
