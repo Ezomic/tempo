@@ -4,7 +4,11 @@ import { computed, ref } from 'vue';
 import { dashboard } from '@/routes';
 import { index as activitiesIndex, show } from '@/routes/activities';
 import { edit as garminSettings } from '@/routes/garmin';
-import { index as planIndex, downgrade } from '@/routes/plan';
+import {
+    index as planIndex,
+    downgrade,
+    generate as planGenerate,
+} from '@/routes/plan';
 
 interface Contributor {
     key: string;
@@ -1320,12 +1324,20 @@ function duration(seconds: number | null): string {
                         <p class="text-sm text-muted-foreground">
                             Nothing planned for today.
                         </p>
-                        <Link
-                            :href="planIndex()"
-                            class="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
-                        >
-                            Plan a workout
-                        </Link>
+                        <div class="flex flex-wrap gap-2">
+                            <Link
+                                :href="planIndex()"
+                                class="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
+                            >
+                                Plan a workout
+                            </Link>
+                            <Link
+                                :href="planGenerate()"
+                                class="inline-flex h-9 items-center rounded-lg border px-4 text-sm font-semibold"
+                            >
+                                Generate a plan
+                            </Link>
+                        </div>
                     </div>
                 </section>
             </div>

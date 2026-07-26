@@ -18,6 +18,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('records', [RecordsController::class, 'index'])->name('records.index');
 
     Route::get('plan', [PlanController::class, 'index'])->name('plan.index');
+    Route::get('plan/generate', [PlanController::class, 'generator'])->name('plan.generate');
+    Route::post('plan/generate', [PlanController::class, 'generate'])->name('plan.generate.store');
     Route::post('plan', [PlanController::class, 'store'])->name('plan.store');
     Route::post('plan/{plannedWorkout}/push', [PlanController::class, 'push'])->name('plan.push');
     Route::post('plan/{plannedWorkout}/watch', [PlanController::class, 'pushToWatch'])->name('plan.watch');
