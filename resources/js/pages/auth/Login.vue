@@ -12,7 +12,8 @@ import { redirect as ssoRedirect } from '@/routes/sso';
 defineOptions({
     layout: {
         title: 'Log in to your account',
-        description: 'Sign in with Thijssensoftware ID, an email code, or a passkey',
+        description:
+            'Sign in with Thijssensoftware ID, an email code, or a passkey',
     },
 });
 
