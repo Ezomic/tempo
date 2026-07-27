@@ -196,34 +196,36 @@ class SyncGarminAction
     private function syncWellness(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $today): void
     {
         for ($date = $start; $date <= $today; $date = $date->addDay()) {
-            $alreadyStored = WellnessDay::query()
+            // whereDate compares only the date part, so it matches the stored
+            // datetime regardless of its time component; a bare-string equality
+            // match on the cast column silently misses and duplicates the row.
+            $existing = WellnessDay::query()
                 ->where('user_id', $connection->user_id)
                 ->whereDate('date', $date->toDateString())
-                ->exists();
+                ->first();
 
             // Past days are immutable once captured; only re-fetch today.
-            if ($alreadyStored && $date->lessThan($today)) {
+            if ($existing !== null && $date->lessThan($today)) {
                 continue;
             }
 
             $snapshot = $this->client->wellness($connection, $date);
 
-            WellnessDay::query()->updateOrCreate(
-                ['user_id' => $connection->user_id, 'date' => $date->toDateString()],
-                [
-                    'sleep_score' => $snapshot->sleepScore,
-                    'sleep_duration_s' => $snapshot->sleepDurationS,
-                    'hrv_status' => $snapshot->hrvStatus,
-                    'hrv_last_night_ms' => $snapshot->hrvLastNightMs,
-                    'hrv_baseline_low' => $snapshot->hrvBaselineLow,
-                    'hrv_baseline_high' => $snapshot->hrvBaselineHigh,
-                    'body_battery_high' => $snapshot->bodyBatteryHigh,
-                    'body_battery_low' => $snapshot->bodyBatteryLow,
-                    'resting_hr' => $snapshot->restingHr,
-                    'stress_avg' => $snapshot->stressAvg,
-                    'raw' => $snapshot->raw,
-                ],
-            );
+            ($existing ?? new WellnessDay)->forceFill([
+                'user_id' => $connection->user_id,
+                'date' => $date->toDateString(),
+                'sleep_score' => $snapshot->sleepScore,
+                'sleep_duration_s' => $snapshot->sleepDurationS,
+                'hrv_status' => $snapshot->hrvStatus,
+                'hrv_last_night_ms' => $snapshot->hrvLastNightMs,
+                'hrv_baseline_low' => $snapshot->hrvBaselineLow,
+                'hrv_baseline_high' => $snapshot->hrvBaselineHigh,
+                'body_battery_high' => $snapshot->bodyBatteryHigh,
+                'body_battery_low' => $snapshot->bodyBatteryLow,
+                'resting_hr' => $snapshot->restingHr,
+                'stress_avg' => $snapshot->stressAvg,
+                'raw' => $snapshot->raw,
+            ])->save();
         }
     }
 
