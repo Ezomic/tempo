@@ -147,6 +147,24 @@ it('stores wellness days from the sidecar snapshot', function () {
         ->and($connection->last_synced_at)->not->toBeNull();
 });
 
+it('re-syncing the same day updates the wellness row instead of duplicating it', function () {
+    $user = User::factory()->create();
+    $connection = GarminConnection::create([
+        'user_id' => $user->id,
+        'status' => GarminConnection::STATUS_CONNECTED,
+        'last_synced_at' => now()->subDay(),
+    ]);
+
+    app(SyncGarminAction::class)->handle($connection);
+    app(SyncGarminAction::class)->handle($connection->fresh());
+
+    $today = CarbonImmutable::now()->toDateString();
+
+    expect(
+        WellnessDay::query()->where('user_id', $user->id)->whereDate('date', $today)->count()
+    )->toBe(1);
+});
+
 it('marks the connection errored when the sync throws', function () {
     $user = User::factory()->create();
     $connection = GarminConnection::create([
