@@ -54,4 +54,12 @@ return [
         'url' => env('OPEN_METEO_URL', 'https://api.open-meteo.com'),
     ],
 
+    'thijssensoftware' => [
+        'base_url' => env('THIJSSENSOFTWARE_ID_URL', 'https://id.thijssensoftware.nl'),
+        'client_id' => env('THIJSSENSOFTWARE_ID_CLIENT_ID'),
+        'client_secret' => env('THIJSSENSOFTWARE_ID_CLIENT_SECRET'),
+        'slug' => env('THIJSSENSOFTWARE_ID_APP_SLUG', 'tempo'),
+        'portal_cache_ttl' => (int) env('THIJSSENSOFTWARE_ID_PORTAL_TTL', 300),
+    ],
+
 ];
