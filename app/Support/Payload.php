@@ -20,13 +20,18 @@ final class Payload
         return is_array($value) ? $value : [];
     }
 
+    /**
+     * Scalars are coerced rather than rejected: JSON identifiers arrive as
+     * numbers as often as strings (Chronos event ids, Garmin workout ids),
+     * and rejecting those silently yields '' instead of the id.
+     */
     public static function str(mixed $value, string|int ...$keys): string
     {
         foreach ($keys as $key) {
             $value = is_array($value) ? ($value[$key] ?? null) : null;
         }
 
-        return is_string($value) ? $value : '';
+        return self::toStr($value);
     }
 
     public static function nullableStr(mixed $value, string|int ...$keys): ?string

@@ -100,7 +100,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'steps' => $workout['steps'],
         ])->throw();
 
-        return Payload::str($response->json(), 'workout_id');
+        return Payload::toStr($response->json('workout_id'));
     }
 
     private function request(): PendingRequest

@@ -6,8 +6,8 @@ namespace App\Services\Training;
 
 use App\Models\DailyLoadMetric;
 use App\Models\User;
-use App\Support\Payload;
 use Carbon\CarbonImmutable;
+use DateTimeInterface;
 
 class FitnessCurveService
 {
@@ -175,8 +175,8 @@ class FitnessCurveService
     {
         $first = $user->activities()->orderBy('started_at')->value('started_at');
 
-        return $first !== null
-            ? CarbonImmutable::parse(Payload::toStr($first))->startOfDay()
+        return $first instanceof DateTimeInterface
+            ? CarbonImmutable::parse($first)->startOfDay()
             : null;
     }
 
