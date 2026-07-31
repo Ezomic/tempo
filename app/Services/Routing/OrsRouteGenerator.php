@@ -7,6 +7,7 @@ namespace App\Services\Routing;
 use App\DataObjects\GeneratedRoute;
 use App\DataObjects\GeoPoint;
 use App\Enums\Sport;
+use App\Support\Payload;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -58,9 +59,9 @@ final readonly class OrsRouteGenerator implements RouteGenerator
                 'elevation' => true,
             ]);
 
-            $props = $feature['properties'] ?? [];
-            $distance = (float) ($props['summary']['distance'] ?? 0);
-            $elevation = (float) ($props['ascent'] ?? 0) + (float) ($props['descent'] ?? 0);
+            $props = Payload::arr($feature, 'properties');
+            $distance = Payload::float($props, 'summary', 'distance');
+            $elevation = Payload::float($props, 'ascent') + Payload::float($props, 'descent');
             $score = $distance > 0 ? $elevation / ($distance / 1000) : PHP_FLOAT_MAX;
 
             if ($score < $bestScore) {
@@ -88,9 +89,9 @@ final readonly class OrsRouteGenerator implements RouteGenerator
         // Return the way we came, minus the duplicated turnaround point.
         $back = array_reverse(array_slice($out, 0, -1));
 
-        $distance = (float) ($props['summary']['distance'] ?? 0);
-        $ascent = (float) ($props['ascent'] ?? 0);
-        $descent = (float) ($props['descent'] ?? 0);
+        $distance = Payload::toFloat($props['summary']['distance'] ?? 0);
+        $ascent = Payload::toFloat($props['ascent'] ?? 0);
+        $descent = Payload::toFloat($props['descent'] ?? 0);
 
         return new GeneratedRoute(
             coordinates: array_merge($out, $back),

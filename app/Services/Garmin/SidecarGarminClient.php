@@ -10,6 +10,7 @@ use App\DataObjects\LoginResult;
 use App\DataObjects\WellnessSnapshot;
 use App\Exceptions\GarminConnectException;
 use App\Models\GarminConnection;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -32,7 +33,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'password' => $password,
         ]));
 
-        return LoginResult::fromSidecar($response->json());
+        return LoginResult::fromSidecar(Payload::arr($response->json()));
     }
 
     public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
@@ -43,7 +44,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'code' => $code,
         ]));
 
-        return LoginResult::fromSidecar($response->json());
+        return LoginResult::fromSidecar(Payload::arr($response->json()));
     }
 
     public function status(GarminConnection $connection): ConnectionStatus
@@ -52,7 +53,7 @@ final readonly class SidecarGarminClient implements GarminClient
             ->get('/status', ['connection_id' => (string) $connection->id])
             ->throw();
 
-        return ConnectionStatus::fromSidecar($response->json());
+        return ConnectionStatus::fromSidecar(Payload::arr($response->json()));
     }
 
     public function activities(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $end): array
@@ -63,10 +64,10 @@ final readonly class SidecarGarminClient implements GarminClient
             'end' => $end->toDateString(),
         ])->throw();
 
-        return array_map(
-            static fn (array $activity): ActivitySummary => ActivitySummary::fromSidecar($activity),
-            $response->json(),
-        );
+        return array_values(array_map(
+            static fn (mixed $activity): ActivitySummary => ActivitySummary::fromSidecar(Payload::arr($activity)),
+            Payload::arr($response->json()),
+        ));
     }
 
     public function downloadFit(GarminConnection $connection, string $activityId): string
@@ -85,7 +86,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'date' => $date->toDateString(),
         ])->throw();
 
-        return WellnessSnapshot::fromSidecar($response->json());
+        return WellnessSnapshot::fromSidecar(Payload::arr($response->json()));
     }
 
     public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string
@@ -99,7 +100,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'steps' => $workout['steps'],
         ])->throw();
 
-        return (string) $response->json('workout_id');
+        return Payload::str($response->json(), 'workout_id');
     }
 
     private function request(): PendingRequest

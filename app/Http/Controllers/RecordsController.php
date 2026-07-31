@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Enums\Sport;
 use App\Models\MeanMaxEffort;
 use App\Models\PersonalRecord;
@@ -16,9 +17,11 @@ use Inertia\Response;
 
 class RecordsController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function index(Request $request, ThresholdTrendService $threshold): Response
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         $sport = $request->string('sport')->toString() === 'bike' ? Sport::Bike : Sport::Run;
 
         return Inertia::render('records/Index', [

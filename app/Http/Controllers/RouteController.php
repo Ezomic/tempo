@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\DataObjects\GeoPoint;
 use App\Enums\WorkoutType;
 use App\Http\Requests\SaveRouteRequest;
@@ -16,15 +17,17 @@ use Throwable;
 
 class RouteController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function suggest(Request $request, PlannedWorkout $plannedWorkout, RouteGenerator $generator, PaceEstimator $pace): JsonResponse
     {
-        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+        abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
         if (! $generator->isConfigured()) {
             return response()->json(['message' => 'Route generation is not configured.'], 422);
         }
 
-        $user = $request->user();
+        $user = $this->currentUser($request);
 
         if ($user->home_lat === null || $user->home_lng === null) {
             return response()->json(['message' => 'Set your home location in settings first.'], 422);
@@ -52,7 +55,7 @@ class RouteController extends Controller
 
     public function save(SaveRouteRequest $request, PlannedWorkout $plannedWorkout): JsonResponse
     {
-        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+        abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
         $data = $request->validated();
 

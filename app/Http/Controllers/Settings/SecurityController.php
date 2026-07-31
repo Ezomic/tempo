@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
 use Inertia\Inertia;
@@ -10,6 +11,8 @@ use Laravel\Fortify\Features;
 
 class SecurityController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     /**
      * Show the user's security settings page.
      */
@@ -39,7 +42,7 @@ class SecurityController extends Controller
         if (Features::canManageTwoFactorAuthentication()) {
             $request->ensureStateIsValid();
 
-            $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
+            $props['twoFactorEnabled'] = $this->currentUser($request)->hasEnabledTwoFactorAuthentication();
             $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
         }
 

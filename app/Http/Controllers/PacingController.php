@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Enums\GoalType;
 use App\Enums\Sport;
 use App\Http\Requests\PlanPacingRequest;
@@ -14,6 +15,7 @@ use App\Services\Routing\GpxParser;
 use App\Services\Training\PacingPlanService;
 use App\Services\Training\RacePredictorService;
 use App\Services\Weather\WeatherForecaster;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -23,6 +25,8 @@ use Inertia\Response;
 
 class PacingController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function index(Request $request, RacePredictorService $predictor): Response
     {
         return Inertia::render('pacing/Index', [
@@ -38,7 +42,7 @@ class PacingController extends Controller
         RacePredictorService $predictor,
         WeatherForecaster $forecaster,
     ): Response {
-        $user = $request->user();
+        $user = $this->currentUser($request);
 
         try {
             $profile = $parser->parse((string) $request->file('gpx')->get());
@@ -46,12 +50,12 @@ class PacingController extends Controller
             throw ValidationException::withMessages(['gpx' => $e->getMessage()]);
         }
 
-        $splitMeters = (int) round(((float) $request->validated('split_km')) * 1000);
+        $splitMeters = (int) round((Payload::toFloat($request->validated('split_km'))) * 1000);
         $weather = $this->weatherFor($user, $request->date('race_date'), $forecaster);
 
         $plan = $pacing->plan(
             $profile,
-            (int) $request->validated('target_seconds'),
+            Payload::toInt($request->validated('target_seconds')),
             $splitMeters,
             $weather['temp'],
             $weather['wind'],

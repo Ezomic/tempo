@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Settings;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateHomeLocationRequest;
 use App\Services\Routing\HomeLocationService;
 use App\Services\Routing\OrsGeocoder;
 use App\Services\Routing\RouteGenerator;
+use App\Support\Payload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +20,11 @@ use Throwable;
 
 class HomeLocationController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function edit(Request $request, RouteGenerator $generator): Response
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
 
         return Inertia::render('settings/Routes', [
             'home' => $user->home_lat !== null && $user->home_lng !== null
@@ -32,7 +36,7 @@ class HomeLocationController extends Controller
 
     public function update(UpdateHomeLocationRequest $request): RedirectResponse
     {
-        $request->user()->update($request->validated());
+        $this->currentUser($request)->update($request->validated());
 
         return back()->with('status', 'Home location saved.');
     }
@@ -54,7 +58,7 @@ class HomeLocationController extends Controller
             return response()->json(['message' => 'Address search is not configured.'], 422);
         }
 
-        $query = trim((string) $request->input('query'));
+        $query = trim(Payload::toStr($request->input('query')));
 
         if ($query === '') {
             return response()->json(['results' => []]);

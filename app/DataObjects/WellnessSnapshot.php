@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DataObjects;
 
 use App\Enums\HrvStatus;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 /**
@@ -41,7 +42,7 @@ final readonly class WellnessSnapshot
         [$batteryHigh, $batteryLow] = self::bodyBatteryRange($w['body_battery'] ?? null);
 
         return new self(
-            date: CarbonImmutable::parse((string) ($w['date'] ?? 'now')),
+            date: CarbonImmutable::parse(Payload::toStr($w['date'] ?? 'now')),
             sleepScore: self::asInt(data_get($w, 'sleep.dailySleepDTO.sleepScores.overall.value')),
             sleepDurationS: self::asInt(data_get($w, 'sleep.dailySleepDTO.sleepTimeSeconds')),
             hrvStatus: HrvStatus::fromGarmin(self::asString(data_get($w, 'hrv.hrvSummary.status'))),

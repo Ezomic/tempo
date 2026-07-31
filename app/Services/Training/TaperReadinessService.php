@@ -7,6 +7,7 @@ namespace App\Services\Training;
 use App\Enums\GoalType;
 use App\Models\TrainingGoal;
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class TaperReadinessService
@@ -71,7 +72,7 @@ class TaperReadinessService
             return $this->factor('freshness', 'Freshness (form)', 'watch', 'No fitness data yet.');
         }
 
-        $tsb = (float) $tsb;
+        $tsb = Payload::toFloat($tsb);
         $state = match (true) {
             $tsb < 0 => 'off',
             $tsb >= $min && $tsb <= $max => 'good',

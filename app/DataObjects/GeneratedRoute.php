@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DataObjects;
 
+use App\Support\Payload;
+
 final readonly class GeneratedRoute
 {
     /**
@@ -23,20 +25,18 @@ final readonly class GeneratedRoute
      */
     public static function fromOrs(array $payload, string $kind): self
     {
-        $feature = $payload['features'][0] ?? [];
-        $summary = $feature['properties']['summary'] ?? [];
-
-        /** @var array<int, array{0: float, 1: float}> $line */
-        $line = $feature['geometry']['coordinates'] ?? [];
+        $feature = Payload::arr($payload, 'features', 0);
+        $summary = Payload::arr($feature, 'properties', 'summary');
+        $line = Payload::arr($feature, 'geometry', 'coordinates');
 
         return new self(
             // ORS returns [lng, lat(, elev)]; store [lat, lng] for Leaflet.
-            coordinates: array_map(
-                static fn (array $c): array => [(float) $c[1], (float) $c[0]],
+            coordinates: array_values(array_map(
+                static fn (mixed $c): array => [Payload::float($c, 1), Payload::float($c, 0)],
                 $line,
-            ),
-            distanceM: (float) ($summary['distance'] ?? 0),
-            ascentM: (float) ($feature['properties']['ascent'] ?? 0),
+            )),
+            distanceM: Payload::float($summary, 'distance'),
+            ascentM: Payload::float($feature, 'properties', 'ascent'),
             kind: $kind,
         );
     }

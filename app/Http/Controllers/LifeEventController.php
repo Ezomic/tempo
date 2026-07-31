@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Models\LifeEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class LifeEventController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -19,14 +22,14 @@ class LifeEventController extends Controller
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $request->user()->lifeEvents()->create($validated);
+        $this->currentUser($request)->lifeEvents()->create($validated);
 
         return back()->with('status', 'Annotation added.');
     }
 
     public function destroy(Request $request, LifeEvent $lifeEvent): RedirectResponse
     {
-        abort_unless($lifeEvent->user_id === $request->user()->id, 403);
+        abort_unless($lifeEvent->user_id === $this->currentUser($request)->id, 403);
 
         $lifeEvent->delete();
 

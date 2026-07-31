@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Models\Activity;
 use App\Services\Training\IntervalAnalyzer;
 use Illuminate\Http\Request;
@@ -13,11 +14,13 @@ use Inertia\Response;
 
 class ActivityController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function __construct(private readonly IntervalAnalyzer $intervals) {}
 
     public function index(Request $request): Response
     {
-        $activities = $request->user()->activities()
+        $activities = $this->currentUser($request)->activities()
             ->latest('started_at')
             ->paginate(20)
             ->through(fn (Activity $activity): array => [
@@ -35,7 +38,7 @@ class ActivityController extends Controller
 
     public function show(Request $request, Activity $activity): Response
     {
-        abort_unless($activity->user_id === $request->user()->id, 403);
+        abort_unless($activity->user_id === $this->currentUser($request)->id, 403);
 
         return Inertia::render('activities/Show', [
             'activity' => [

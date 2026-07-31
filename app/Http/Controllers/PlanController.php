@@ -9,6 +9,7 @@ use App\Actions\DowngradeWorkoutAction;
 use App\Actions\GenerateTrainingPlanAction;
 use App\Actions\PushPlannedWorkoutAction;
 use App\Actions\PushWorkoutToGarminAction;
+use App\Concerns\InteractsWithCurrentUser;
 use App\Enums\Intensity;
 use App\Enums\Sport;
 use App\Enums\WorkoutType;
@@ -20,6 +21,7 @@ use App\Services\Chronos\ChronosClient;
 use App\Services\Routing\RouteGenerator;
 use App\Services\Training\AutoRescheduleService;
 use App\Services\Training\WorkoutDescriber;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,11 +33,13 @@ use Throwable;
 
 class PlanController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function index(Request $request, ChronosClient $chronos, WorkoutDescriber $describer, RouteGenerator $routes): Response
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
 
-        $workouts = $request->user()->plannedWorkouts()
+        $workouts = $this->currentUser($request)->plannedWorkouts()
             ->with('steps')
             ->orderBy('date')
             ->get()
@@ -93,7 +97,7 @@ class PlanController extends Controller
 
     public function push(Request $request, PlannedWorkout $plannedWorkout, PushPlannedWorkoutAction $action): RedirectResponse
     {
-        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+        abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
         try {
             $action->handle($plannedWorkout);
@@ -108,7 +112,7 @@ class PlanController extends Controller
 
     public function pushToWatch(Request $request, PlannedWorkout $plannedWorkout, PushWorkoutToGarminAction $action): RedirectResponse
     {
-        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+        abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
         try {
             $action->handle($plannedWorkout);
@@ -123,7 +127,7 @@ class PlanController extends Controller
 
     public function destroy(Request $request, PlannedWorkout $plannedWorkout, ChronosClient $chronos): RedirectResponse
     {
-        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+        abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
         $eventId = $plannedWorkout->chronos_event_id;
         if ($eventId !== null && $eventId !== '' && $chronos->isConfigured()) {
@@ -151,11 +155,11 @@ class PlanController extends Controller
 
     public function generate(GeneratePlanRequest $request, GenerateTrainingPlanAction $generator, ChronosClient $chronos): RedirectResponse
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         $today = CarbonImmutable::now();
-        $raceDate = CarbonImmutable::parse((string) $request->validated('race_date'));
-        $sport = Sport::from((string) $request->validated('sport'));
-        $sessionsPerWeek = (int) $request->validated('sessions_per_week');
+        $raceDate = CarbonImmutable::parse(Payload::toStr($request->validated('race_date')));
+        $sport = Sport::from(Payload::toStr($request->validated('sport')));
+        $sessionsPerWeek = Payload::toInt($request->validated('sessions_per_week'));
         $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0);
 
         $busyDates = $chronos->busyDays($today->toDateString(), $raceDate->toDateString());
@@ -199,7 +203,7 @@ class PlanController extends Controller
         $weeks = 5;
         $end = $start->addWeeks($weeks)->subDay();
 
-        $byDate = $request->user()->plannedWorkouts()
+        $byDate = $this->currentUser($request)->plannedWorkouts()
             ->whereBetween('date', [$start->toDateString().' 00:00:00', $end->toDateString().' 23:59:59'])
             ->orderBy('date')
             ->get()
@@ -234,7 +238,7 @@ class PlanController extends Controller
 
     public function move(Request $request, PlannedWorkout $plannedWorkout, PushPlannedWorkoutAction $push): RedirectResponse
     {
-        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+        abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
         $validated = $request->validate(['date' => ['required', 'date']]);
         $plannedWorkout->forceFill(['date' => $validated['date']])->save();
@@ -261,7 +265,7 @@ class PlanController extends Controller
 
     public function downgrade(Request $request, PlannedWorkout $plannedWorkout, DowngradeWorkoutAction $action, PushPlannedWorkoutAction $push): RedirectResponse
     {
-        abort_unless($plannedWorkout->user_id === $request->user()->id, 403);
+        abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
         try {
             $action->handle($plannedWorkout);

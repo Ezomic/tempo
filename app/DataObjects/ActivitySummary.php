@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DataObjects;
 
 use App\Enums\Sport;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 final readonly class ActivitySummary
@@ -38,7 +39,7 @@ final readonly class ActivitySummary
         $gmt = data_get($a, 'startTimeGMT');
 
         return new self(
-            externalId: (string) ($a['activityId'] ?? ''),
+            externalId: Payload::toStr($a['activityId'] ?? ''),
             sport: Sport::fromGarminTypeKey(is_string($typeKey) ? $typeKey : null),
             subSport: is_string($typeKey) ? $typeKey : null,
             startedAt: is_string($gmt) ? CarbonImmutable::parse($gmt, 'UTC') : CarbonImmutable::now(),

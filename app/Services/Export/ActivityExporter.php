@@ -6,6 +6,7 @@ namespace App\Services\Export;
 
 use App\Models\Activity;
 use App\Models\User;
+use App\Support\Payload;
 use Illuminate\Support\Facades\Storage;
 
 class ActivityExporter
@@ -22,7 +23,7 @@ class ActivityExporter
         $t = $streams['t'] ?? [];
         foreach ($t as $i => $ts) {
             $lines[] = implode(',', [
-                (int) $ts,
+                Payload::toInt($ts),
                 $this->cell($streams['hr'][$i] ?? null),
                 $this->cell($streams['speed'][$i] ?? null),
                 $this->cell($streams['lat'][$i] ?? null),
@@ -43,7 +44,7 @@ class ActivityExporter
 
         $trackpoints = '';
         foreach ($t as $i => $ts) {
-            $time = gmdate('Y-m-d\TH:i:s\Z', (int) $ts);
+            $time = gmdate('Y-m-d\TH:i:s\Z', Payload::toInt($ts));
             $trackpoints .= "        <Trackpoint>\n          <Time>{$time}</Time>\n";
             $lat = $streams['lat'][$i] ?? null;
             $lng = $streams['lng'][$i] ?? null;
@@ -52,7 +53,7 @@ class ActivityExporter
             }
             $hr = $streams['hr'][$i] ?? null;
             if ($hr !== null) {
-                $trackpoints .= '          <HeartRateBpm><Value>'.(int) $hr."</Value></HeartRateBpm>\n";
+                $trackpoints .= '          <HeartRateBpm><Value>'.Payload::toInt($hr)."</Value></HeartRateBpm>\n";
             }
             $trackpoints .= "        </Trackpoint>\n";
         }
@@ -126,6 +127,6 @@ XML;
 
     private function cell(mixed $value): string
     {
-        return $value === null ? '' : (string) $value;
+        return $value === null ? '' : Payload::toStr($value);
     }
 }

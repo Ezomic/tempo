@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Services\Training\ConsistencyService;
 use App\Services\Training\TrainingRecapService;
 use Carbon\CarbonImmutable;
@@ -13,6 +14,8 @@ use Inertia\Response;
 
 class RecapController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function index(Request $request, TrainingRecapService $recap, ConsistencyService $consistency): Response
     {
         $period = $request->string('period')->toString() === 'year' ? 'year' : 'month';

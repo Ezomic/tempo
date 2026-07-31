@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Training;
 
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class TrainingRecapService
@@ -86,6 +87,6 @@ class TrainingRecapService
             ->orderByDesc('date')
             ->value('ctl');
 
-        return $ctl === null ? 0.0 : round((float) $ctl, 1);
+        return $ctl === null ? 0.0 : round(Payload::toFloat($ctl), 1);
     }
 }

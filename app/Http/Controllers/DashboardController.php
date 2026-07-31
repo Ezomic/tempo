@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Enums\WorkoutType;
 use App\Models\Activity;
 use App\Models\PlannedWorkout;
@@ -34,6 +35,8 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function __construct(
         private readonly TrainingLoadService $load,
         private readonly ReadinessService $readiness,
@@ -56,7 +59,7 @@ class DashboardController extends Controller
 
     public function __invoke(Request $request): Response
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         $today = CarbonImmutable::now();
 
         $load = $this->load->acuteChronic($user, $today);

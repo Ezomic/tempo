@@ -6,6 +6,7 @@ namespace App\Services\Training;
 
 use App\Models\HrZoneSettings;
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class ZoneCalibrationService
@@ -77,7 +78,7 @@ class ZoneCalibrationService
             ->where('started_at', '>=', $today->subDays($lookback)->toDateString())
             ->max('avg_hr');
 
-        return $avgHr === null ? null : (int) $avgHr;
+        return $avgHr === null ? null : Payload::toInt($avgHr);
     }
 
     /**

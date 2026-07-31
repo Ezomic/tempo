@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Models\User;
 use App\Services\Training\PublicProfileService;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,8 @@ use Inertia\Response;
 
 class PublicProfileController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function show(string $token, PublicProfileService $profile): Response
     {
         $user = User::query()->where('public_profile_token', $token)->firstOrFail();
@@ -25,7 +28,7 @@ class PublicProfileController extends Controller
 
     public function enable(Request $request): RedirectResponse
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
 
         if ($user->public_profile_token === null) {
             $user->forceFill(['public_profile_token' => Str::random(32)])->save();
@@ -36,7 +39,7 @@ class PublicProfileController extends Controller
 
     public function disable(Request $request): RedirectResponse
     {
-        $request->user()->forceFill(['public_profile_token' => null])->save();
+        $this->currentUser($request)->forceFill(['public_profile_token' => null])->save();
 
         return back()->with('status', 'Public profile disabled.');
     }
