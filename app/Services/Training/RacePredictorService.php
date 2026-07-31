@@ -7,6 +7,7 @@ namespace App\Services\Training;
 use App\Enums\Sport;
 use App\Models\MeanMaxEffort;
 use App\Models\User;
+use App\Support\Payload;
 
 class RacePredictorService
 {
@@ -106,7 +107,7 @@ class RacePredictorService
      */
     private function riegel(array $reference, int $target, float $fitnessFactor): int
     {
-        $exponent = (float) config('training.predictor.riegel_exponent');
+        $exponent = Payload::toFloat(config('training.predictor.riegel_exponent'));
         $time = $reference['time'] * ($target / $reference['distance']) ** $exponent;
 
         return (int) round($time / $fitnessFactor);
@@ -137,7 +138,7 @@ class RacePredictorService
             return 1.0;
         }
 
-        return ($projectedCtl / $currentCtl) ** (float) config('training.predictor.fitness_exponent');
+        return ($projectedCtl / $currentCtl) ** Payload::toFloat(config('training.predictor.fitness_exponent'));
     }
 
     private function label(int $distanceM): string

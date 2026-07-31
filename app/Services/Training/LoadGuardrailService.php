@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Training;
 
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class LoadGuardrailService
@@ -51,9 +52,9 @@ class LoadGuardrailService
         }
 
         return match (true) {
-            $acwr > (float) config('training.acwr.danger') => self::DANGER,
-            $acwr > (float) config('training.acwr.safe_max') => self::CAUTION,
-            $acwr < (float) config('training.acwr.safe_min') => self::CAUTION,
+            $acwr > Payload::toFloat(config('training.acwr.danger')) => self::DANGER,
+            $acwr > Payload::toFloat(config('training.acwr.safe_max')) => self::CAUTION,
+            $acwr < Payload::toFloat(config('training.acwr.safe_min')) => self::CAUTION,
             default => self::SAFE,
         };
     }
@@ -65,8 +66,8 @@ class LoadGuardrailService
         }
 
         return match (true) {
-            $ramp >= (float) config('training.ramp.danger') => self::DANGER,
-            $ramp >= (float) config('training.ramp.caution') => self::CAUTION,
+            $ramp >= Payload::toFloat(config('training.ramp.danger')) => self::DANGER,
+            $ramp >= Payload::toFloat(config('training.ramp.caution')) => self::CAUTION,
             default => self::SAFE,
         };
     }
@@ -88,7 +89,7 @@ class LoadGuardrailService
             return 'Load is progressing safely.';
         }
 
-        $detraining = $acwr !== null && $acwr < (float) config('training.acwr.safe_min');
+        $detraining = $acwr !== null && $acwr < Payload::toFloat(config('training.acwr.safe_min'));
         if ($detraining && $status === self::CAUTION) {
             return 'Your load has dropped off. Ease back in gradually rather than jumping straight to hard sessions.';
         }

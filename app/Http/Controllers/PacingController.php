@@ -30,7 +30,7 @@ class PacingController extends Controller
     public function index(Request $request, RacePredictorService $predictor): Response
     {
         return Inertia::render('pacing/Index', [
-            'raceGoals' => $this->raceGoals($request->user(), $predictor),
+            'raceGoals' => $this->raceGoals($this->currentUser($request), $predictor),
             'plan' => null,
         ]);
     }
@@ -73,7 +73,7 @@ class PacingController extends Controller
     private function weatherFor(User $user, ?CarbonInterface $raceDate, WeatherForecaster $forecaster): array
     {
         $none = ['temp' => null, 'wind' => null, 'applied' => false];
-        $horizon = (int) config('training.weather.horizon_days');
+        $horizon = Payload::toInt(config('training.weather.horizon_days'));
         $today = CarbonImmutable::now();
 
         if ($raceDate === null || $user->home_lat === null || $user->home_lng === null) {

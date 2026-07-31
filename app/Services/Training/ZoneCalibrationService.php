@@ -32,7 +32,7 @@ class ZoneCalibrationService
         $currentLthr = $settings?->lthr;
         $delta = $currentLthr === null ? $estimated : $estimated - $currentLthr;
 
-        if ($currentLthr !== null && abs($delta) < (int) config('training.zones.calibration_min_delta_bpm')) {
+        if ($currentLthr !== null && abs($delta) < Payload::toInt(config('training.zones.calibration_min_delta_bpm'))) {
             return null; // stored zones already match recent efforts
         }
 
@@ -70,7 +70,7 @@ class ZoneCalibrationService
      */
     private function estimateLthr(User $user, CarbonImmutable $today): ?int
     {
-        $lookback = (int) config('training.zones.calibration_lookback_days');
+        $lookback = Payload::toInt(config('training.zones.calibration_lookback_days'));
 
         $avgHr = $user->activities()
             ->whereNotNull('avg_hr')

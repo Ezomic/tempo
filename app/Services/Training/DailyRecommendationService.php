@@ -7,6 +7,7 @@ namespace App\Services\Training;
 use App\Models\PlannedWorkout;
 use App\Models\User;
 use App\Services\Weather\WeatherService;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class DailyRecommendationService
@@ -35,7 +36,7 @@ class DailyRecommendationService
         $weather = $plan !== null ? $this->weather->forOutdoorSession($plan, $user, $today) : null;
 
         $isHard = $plan?->workout_type?->isHard() ?? false;
-        $downgradeBelow = (int) config('training.readiness.downgrade_below');
+        $downgradeBelow = Payload::toInt(config('training.readiness.downgrade_below'));
 
         $factors = $this->factors($plan, $score, $guardStatus, $weather);
         $decision = $this->decide($plan, $score, $guardStatus, $weather, $isHard, $downgradeBelow);

@@ -23,10 +23,10 @@ class RecapController extends Controller
         $from = $period === 'year' ? $today->startOfYear() : $today->startOfMonth();
 
         return Inertia::render('recap/Index', [
-            'recap' => $recap->recap($request->user(), $from, $today),
+            'recap' => $recap->recap($this->currentUser($request), $from, $today),
             'period' => $period,
             'range' => ['from' => $from->toDateString(), 'to' => $today->toDateString()],
-            'consistency' => $consistency->heatmap($request->user(), $today),
+            'consistency' => $consistency->heatmap($this->currentUser($request), $today),
         ]);
     }
 }

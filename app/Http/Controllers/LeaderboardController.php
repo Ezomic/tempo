@@ -17,7 +17,7 @@ class LeaderboardController extends Controller
     public function index(Request $request, RouteLeaderboardService $leaderboard): Response
     {
         return Inertia::render('leaderboard/Index', [
-            'boards' => $leaderboard->boards($request->user()),
+            'boards' => $leaderboard->boards($this->currentUser($request)),
         ]);
     }
 }

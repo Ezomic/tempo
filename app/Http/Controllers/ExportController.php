@@ -33,7 +33,7 @@ class ExportController extends Controller
     public function all(Request $request, ActivityExporter $exporter): Response
     {
         return $this->download(
-            $exporter->allActivitiesCsv($request->user()),
+            $exporter->allActivitiesCsv($this->currentUser($request)),
             'tempo-activities.csv',
             'text/csv',
         );

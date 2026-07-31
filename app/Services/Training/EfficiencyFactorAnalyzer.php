@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Training;
 
+use App\Support\Payload;
+
 class EfficiencyFactorAnalyzer
 {
     /**
@@ -35,11 +37,11 @@ class EfficiencyFactorAnalyzer
 
         sort($timestamps);
         $duration = $timestamps[$count - 1] - $timestamps[0];
-        if ($duration < (int) config('training.efficiency.min_seconds')) {
+        if ($duration < Payload::toInt(config('training.efficiency.min_seconds'))) {
             return null;
         }
 
-        if ($this->coefficientOfVariation(array_values($speeds)) > (float) config('training.efficiency.max_speed_cov')) {
+        if ($this->coefficientOfVariation(array_values($speeds)) > Payload::toFloat(config('training.efficiency.max_speed_cov'))) {
             return null;
         }
 

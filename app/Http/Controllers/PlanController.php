@@ -90,7 +90,7 @@ class PlanController extends Controller
 
     public function store(StorePlannedWorkoutRequest $request, CreatePlannedWorkoutAction $action): RedirectResponse
     {
-        $action->handle($request->user(), $request->validated());
+        $action->handle($this->currentUser($request), $request->validated());
 
         return back()->with('status', 'Workout planned.');
     }
@@ -256,7 +256,7 @@ class PlanController extends Controller
 
     public function reschedule(Request $request, AutoRescheduleService $reschedule): RedirectResponse
     {
-        $applied = $reschedule->apply($request->user(), CarbonImmutable::now());
+        $applied = $reschedule->apply($this->currentUser($request), CarbonImmutable::now());
 
         return $applied
             ? back()->with('status', 'Session rescheduled.')

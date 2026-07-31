@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $last_synced_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read User $user
  */
 #[Fillable([
     'user_id',

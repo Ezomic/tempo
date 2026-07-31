@@ -27,6 +27,7 @@ use App\Services\Training\TrainingLoadService;
 use App\Services\Training\ZoneCalibrationService;
 use App\Services\Training\ZoneDistributionService;
 use App\Services\Weather\WeatherService;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -112,7 +113,7 @@ class DashboardController extends Controller
             ->get();
 
         $easyPlans = $this->easyPlansByDate($user, $activities);
-        $ceiling = (float) config('training.recovery_ceiling');
+        $ceiling = Payload::toFloat(config('training.recovery_ceiling'));
 
         return array_values($activities
             ->map(function (Activity $activity) use ($easyPlans, $ceiling): array {

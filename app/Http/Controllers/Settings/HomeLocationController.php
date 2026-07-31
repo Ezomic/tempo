@@ -43,7 +43,7 @@ class HomeLocationController extends Controller
 
     public function infer(Request $request, HomeLocationService $service): JsonResponse
     {
-        $home = $service->infer($request->user());
+        $home = $service->infer($this->currentUser($request));
 
         if ($home === null) {
             return response()->json(['message' => 'No GPS history to infer a home location from yet.'], 422);
