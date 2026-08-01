@@ -20,7 +20,7 @@ final readonly class ConnectionStatus
     {
         return new self(
             connected: (bool) ($payload['connected'] ?? false),
-            displayName: isset($payload['display_name']) ? Payload::toStr($payload)['display_name'] : null,
+            displayName: isset($payload['display_name']) ? Payload::toStr($payload['display_name']) : null,
         );
     }
 }

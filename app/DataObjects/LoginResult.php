@@ -26,8 +26,8 @@ final readonly class LoginResult
     {
         return new self(
             status: Payload::toStr($payload['status'] ?? 'ok'),
-            loginToken: isset($payload['login_token']) ? Payload::toStr($payload)['login_token'] : null,
-            displayName: isset($payload['display_name']) ? Payload::toStr($payload)['display_name'] : null,
+            loginToken: isset($payload['login_token']) ? Payload::toStr($payload['login_token']) : null,
+            displayName: isset($payload['display_name']) ? Payload::toStr($payload['display_name']) : null,
         );
     }
 }
