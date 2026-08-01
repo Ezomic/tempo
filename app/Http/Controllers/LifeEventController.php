@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Concerns\InteractsWithCurrentUser;
 use App\Models\LifeEvent;
+use App\Support\Payload;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,7 +23,7 @@ class LifeEventController extends Controller
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $this->currentUser($request)->lifeEvents()->create($validated);
+        $this->currentUser($request)->lifeEvents()->create(Payload::assoc($validated));
 
         return back()->with('status', 'Annotation added.');
     }

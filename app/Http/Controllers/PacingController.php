@@ -103,7 +103,7 @@ class PacingController extends Controller
             ->mapWithKeys(fn (MeanMaxEffort $e): array => [$e->duration_s => $e->speed_mps])
             ->all();
 
-        $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0.0);
+        $currentCtl = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl'));
 
         return array_values($user->trainingGoals()
             ->where('type', GoalType::RaceTime)

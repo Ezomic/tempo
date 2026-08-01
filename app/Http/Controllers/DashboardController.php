@@ -128,7 +128,7 @@ class DashboardController extends Controller
                     'distance_m' => $activity->distance_m,
                     'duration_s' => $activity->duration_s,
                     'trimp' => $activity->trimp,
-                    'recovery_flag' => $easyPlans->has($date)
+                    'recovery_flag' => isset($easyPlans[$date])
                         && (float) ($activity->trimp ?? 0) > $ceiling,
                 ];
             })
@@ -140,9 +140,9 @@ class DashboardController extends Controller
      * keyed by date.
      *
      * @param  Collection<int, Activity>  $activities
-     * @return Collection<string, PlannedWorkout>
+     * @return array<string, PlannedWorkout>
      */
-    private function easyPlansByDate(User $user, Collection $activities): Collection
+    private function easyPlansByDate(User $user, Collection $activities): array
     {
         $dates = $activities
             ->map(fn (Activity $activity): string => $activity->started_at->toDateString())
@@ -151,14 +151,18 @@ class DashboardController extends Controller
             ->all();
 
         if ($dates === []) {
-            return collect();
+            return [];
         }
 
-        return $user->plannedWorkouts()
+        $plans = [];
+        foreach ($user->plannedWorkouts()
             ->whereIn('workout_type', [WorkoutType::Recovery, WorkoutType::Easy])
             ->whereBetween('date', [min($dates).' 00:00:00', max($dates).' 23:59:59'])
-            ->get()
-            ->keyBy(fn (PlannedWorkout $workout): string => $workout->date->toDateString());
+            ->get() as $workout) {
+            $plans[$workout->date->toDateString()] = $workout;
+        }
+
+        return $plans;
     }
 
     /**

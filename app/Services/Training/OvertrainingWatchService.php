@@ -114,17 +114,19 @@ class OvertrainingWatchService
             'rhr' => $this->average($days->pluck('resting_hr')->all()),
             'hrv' => $this->average($days->pluck('hrv_last_night_ms')->all()),
             'sleep' => $this->average($days->pluck('sleep_duration_s')->map(
-                fn (?int $s): ?float => $s === null ? null : $s / 3600
+                fn (mixed $s): ?float => is_numeric($s) ? (float) $s / 3600 : null
             )->all()),
         ];
     }
 
     /**
-     * @param  array<int, int|float|null>  $values
+     * Values come straight off a pluck(), so they arrive untyped.
+     *
+     * @param  array<array-key, mixed>  $values
      */
     private function average(array $values): ?float
     {
-        $present = array_values(array_filter($values, fn ($v): bool => $v !== null));
+        $present = array_values(array_filter($values, is_numeric(...)));
 
         return $present === [] ? null : array_sum($present) / count($present);
     }

@@ -11,6 +11,7 @@ use App\Enums\Sport;
 use App\Enums\WorkoutType;
 use App\Http\Requests\StoreWorkoutTemplateRequest;
 use App\Models\WorkoutTemplate;
+use App\Support\Payload;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -64,10 +65,10 @@ class WorkoutTemplateController extends Controller
     {
         abort_unless($workoutTemplate->user_id === $this->currentUser($request)->id, 403);
 
-        $validated = $request->validate(['date' => ['required', 'date']]);
+        $validated = Payload::assoc($request->validate(['date' => ['required', 'date']]));
 
         $action->handle($this->currentUser($request), [
-            'date' => $validated['date'],
+            'date' => Payload::toStr($validated['date']),
             'sport' => $workoutTemplate->sport,
             'workout_type' => $workoutTemplate->workout_type,
             'title' => $workoutTemplate->name,

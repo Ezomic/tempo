@@ -71,7 +71,7 @@ final readonly class WellnessSnapshot
 
         $levels = [];
         foreach ($bodyBattery as $entry) {
-            foreach (data_get($entry, 'bodyBatteryValuesArray', []) as $point) {
+            foreach (Payload::arr(data_get($entry, 'bodyBatteryValuesArray', [])) as $point) {
                 $level = is_array($point) ? end($point) : null;
                 if (is_numeric($level)) {
                     $levels[] = (int) $level;

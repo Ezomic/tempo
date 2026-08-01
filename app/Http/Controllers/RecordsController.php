@@ -10,6 +10,7 @@ use App\Models\MeanMaxEffort;
 use App\Models\PersonalRecord;
 use App\Models\User;
 use App\Services\Training\ThresholdTrendService;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -85,7 +86,7 @@ class RecordsController extends Controller
             ->select('sport')
             ->distinct()
             ->pluck('sport')
-            ->map(fn (Sport $sport): string => $sport->value)
+            ->map(fn (mixed $sport): string => $sport instanceof Sport ? $sport->value : Payload::toStr($sport))
             ->all());
     }
 

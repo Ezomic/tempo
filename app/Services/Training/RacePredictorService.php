@@ -25,7 +25,7 @@ class RacePredictorService
             ->mapWithKeys(fn (MeanMaxEffort $e): array => [$e->duration_s => $e->speed_mps])
             ->all();
 
-        $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0.0);
+        $currentCtl = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl'));
 
         return $this->predict($meanMax, $currentCtl);
     }
@@ -159,6 +159,6 @@ class RacePredictorService
     {
         $value = config('training.predictor.distances_m');
 
-        return is_array($value) ? array_values(array_map(intval(...), $value)) : [];
+        return is_array($value) ? array_values(array_map(static fn (mixed $item): int => Payload::toInt($item), $value)) : [];
     }
 }

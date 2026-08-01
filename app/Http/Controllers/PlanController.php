@@ -160,7 +160,7 @@ class PlanController extends Controller
         $raceDate = CarbonImmutable::parse(Payload::toStr($request->validated('race_date')));
         $sport = Sport::from(Payload::toStr($request->validated('sport')));
         $sessionsPerWeek = Payload::toInt($request->validated('sessions_per_week'));
-        $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0);
+        $currentCtl = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl'));
 
         $busyDates = $chronos->busyDays($today->toDateString(), $raceDate->toDateString());
         $specs = $generator->handle($today, $raceDate, $sessionsPerWeek, $currentCtl, $busyDates);
@@ -203,11 +203,15 @@ class PlanController extends Controller
         $weeks = 5;
         $end = $start->addWeeks($weeks)->subDay();
 
-        $byDate = $this->currentUser($request)->plannedWorkouts()
+        // Grouped into a plain array rather than groupBy(), whose nested
+        // collection value is untyped and loses PlannedWorkout downstream.
+        $byDate = [];
+        foreach ($this->currentUser($request)->plannedWorkouts()
             ->whereBetween('date', [$start->toDateString().' 00:00:00', $end->toDateString().' 23:59:59'])
             ->orderBy('date')
-            ->get()
-            ->groupBy(fn (PlannedWorkout $w): string => $w->date->toDateString());
+            ->get() as $workout) {
+            $byDate[$workout->date->toDateString()][] = $workout;
+        }
 
         $grid = [];
         for ($w = 0; $w < $weeks; $w++) {
@@ -219,15 +223,17 @@ class PlanController extends Controller
                     'date' => $key,
                     'is_today' => $date->isSameDay($today),
                     'is_past' => $date->lessThan($today->startOfDay()),
-                    'workouts' => ($byDate->get($key) ?? collect())
-                        ->map(fn (PlannedWorkout $workout): array => [
+                    'workouts' => array_map(
+                        fn (PlannedWorkout $workout): array => [
                             'id' => $workout->id,
                             'title' => $workout->title,
                             'sport' => $workout->sport->value,
                             'workout_type' => $workout->workout_type?->value,
                             'generated' => $workout->generated_at !== null,
                             'pushed' => $workout->isPushed(),
-                        ])->values()->all(),
+                        ],
+                        $byDate[$key] ?? [],
+                    ),
                 ];
             }
             $grid[] = ['week_start' => $start->addWeeks($w)->toDateString(), 'days' => $days];
@@ -240,8 +246,8 @@ class PlanController extends Controller
     {
         abort_unless($plannedWorkout->user_id === $this->currentUser($request)->id, 403);
 
-        $validated = $request->validate(['date' => ['required', 'date']]);
-        $plannedWorkout->forceFill(['date' => $validated['date']])->save();
+        $validated = Payload::assoc($request->validate(['date' => ['required', 'date']]));
+        $plannedWorkout->forceFill(['date' => Payload::toStr($validated['date'])])->save();
 
         if ($plannedWorkout->isPushed()) {
             try {

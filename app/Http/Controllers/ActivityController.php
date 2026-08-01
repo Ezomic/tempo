@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Concerns\InteractsWithCurrentUser;
 use App\Models\Activity;
 use App\Services\Training\IntervalAnalyzer;
+use App\Support\Payload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -116,6 +117,6 @@ class ActivityController extends Controller
 
         $decoded = json_decode((string) Storage::disk('local')->get($activity->streams_path), true);
 
-        return is_array($decoded) ? $decoded : null;
+        return is_array($decoded) ? Payload::assoc($decoded) : null;
     }
 }
