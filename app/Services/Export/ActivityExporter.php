@@ -48,7 +48,7 @@ class ActivityExporter
             $trackpoints .= "        <Trackpoint>\n          <Time>{$time}</Time>\n";
             $lat = $streams['lat'][$i] ?? null;
             $lng = $streams['lng'][$i] ?? null;
-            if ($lat !== null && $lng !== null) {
+            if (is_numeric($lat) && is_numeric($lng)) {
                 $trackpoints .= "          <Position><LatitudeDegrees>{$lat}</LatitudeDegrees><LongitudeDegrees>{$lng}</LongitudeDegrees></Position>\n";
             }
             $hr = $streams['hr'][$i] ?? null;
@@ -122,7 +122,7 @@ XML;
 
         $decoded = json_decode((string) Storage::disk('local')->get($activity->streams_path), true);
 
-        return is_array($decoded) ? $decoded : [];
+        return Payload::streams($decoded);
     }
 
     private function cell(mixed $value): string

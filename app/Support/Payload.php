@@ -21,6 +21,45 @@ final class Payload
     }
 
     /**
+     * A decoded stream file: named channels ("hr", "lat", ...) each holding a
+     * list of samples. Anything that is not a named list is dropped.
+     *
+     * @return array<string, list<mixed>>
+     */
+    public static function streams(mixed $value, string|int ...$keys): array
+    {
+        $out = [];
+
+        foreach (self::assoc($value, ...$keys) as $channel => $samples) {
+            if (is_array($samples)) {
+                $out[$channel] = array_values($samples);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A decoded JSON object, keyed by name. Numeric keys are dropped so the
+     * result is genuinely string-keyed rather than merely asserted to be.
+     *
+     * @return array<string, mixed>
+     */
+    public static function assoc(mixed $value, string|int ...$keys): array
+    {
+        $found = self::arr($value, ...$keys);
+        $out = [];
+
+        foreach ($found as $key => $item) {
+            if (is_string($key)) {
+                $out[$key] = $item;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Scalars are coerced rather than rejected: JSON identifiers arrive as
      * numbers as often as strings (Chronos event ids, Garmin workout ids),
      * and rejecting those silently yields '' instead of the id.

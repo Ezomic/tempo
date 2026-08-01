@@ -7,6 +7,7 @@ namespace App\Services\Routing;
 use App\DataObjects\GeoPoint;
 use App\Models\Activity;
 use App\Models\User;
+use App\Support\Payload;
 use Illuminate\Support\Facades\Storage;
 
 class HomeLocationService
@@ -48,8 +49,8 @@ class HomeLocationService
         }
 
         $decoded = json_decode((string) Storage::disk('local')->get($activity->streams_path), true);
-        $lat = is_array($decoded) ? ($decoded['lat'][0] ?? null) : null;
-        $lng = is_array($decoded) ? ($decoded['lng'][0] ?? null) : null;
+        $lat = Payload::arr($decoded, 'lat')[0] ?? null;
+        $lng = Payload::arr($decoded, 'lng')[0] ?? null;
 
         if (! is_numeric($lat) || ! is_numeric($lng)) {
             return null;

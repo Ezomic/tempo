@@ -33,7 +33,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'password' => $password,
         ]));
 
-        return LoginResult::fromSidecar(Payload::arr($response->json()));
+        return LoginResult::fromSidecar(Payload::assoc($response->json()));
     }
 
     public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
@@ -44,7 +44,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'code' => $code,
         ]));
 
-        return LoginResult::fromSidecar(Payload::arr($response->json()));
+        return LoginResult::fromSidecar(Payload::assoc($response->json()));
     }
 
     public function status(GarminConnection $connection): ConnectionStatus
@@ -53,7 +53,7 @@ final readonly class SidecarGarminClient implements GarminClient
             ->get('/status', ['connection_id' => (string) $connection->id])
             ->throw();
 
-        return ConnectionStatus::fromSidecar(Payload::arr($response->json()));
+        return ConnectionStatus::fromSidecar(Payload::assoc($response->json()));
     }
 
     public function activities(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $end): array
@@ -65,7 +65,7 @@ final readonly class SidecarGarminClient implements GarminClient
         ])->throw();
 
         return array_values(array_map(
-            static fn (mixed $activity): ActivitySummary => ActivitySummary::fromSidecar(Payload::arr($activity)),
+            static fn (mixed $activity): ActivitySummary => ActivitySummary::fromSidecar(Payload::assoc($activity)),
             Payload::arr($response->json()),
         ));
     }
@@ -86,7 +86,7 @@ final readonly class SidecarGarminClient implements GarminClient
             'date' => $date->toDateString(),
         ])->throw();
 
-        return WellnessSnapshot::fromSidecar(Payload::arr($response->json()));
+        return WellnessSnapshot::fromSidecar(Payload::assoc($response->json()));
     }
 
     public function pushWorkout(GarminConnection $connection, array $workout, CarbonImmutable $date): string

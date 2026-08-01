@@ -66,7 +66,7 @@ class WorkoutTemplateController extends Controller
 
         $validated = $request->validate(['date' => ['required', 'date']]);
 
-        $action->handle($request->user(), [
+        $action->handle($this->currentUser($request), [
             'date' => $validated['date'],
             'sport' => $workoutTemplate->sport,
             'workout_type' => $workoutTemplate->workout_type,

@@ -16,7 +16,7 @@ class ZoneCalibrationController extends Controller
 
     public function apply(Request $request, ZoneCalibrationService $calibration): RedirectResponse
     {
-        $applied = $calibration->apply($request->user(), CarbonImmutable::now());
+        $applied = $calibration->apply($this->currentUser($request), CarbonImmutable::now());
 
         return $applied
             ? back()->with('status', 'Heart-rate zones recalibrated.')
