@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
+use App\Concerns\InteractsWithCurrentUser;
+use App\Support\Payload;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ProfileDeleteRequest extends FormRequest
 {
+    use InteractsWithCurrentUser;
+
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'email' => mb_strtolower(trim((string) $this->input('email'))),
+            'email' => mb_strtolower(trim(Payload::toStr($this->input('email')))),
         ]);
     }
 
@@ -23,7 +27,7 @@ class ProfileDeleteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', Rule::in([mb_strtolower($this->user()->email)])],
+            'email' => ['required', 'string', Rule::in([mb_strtolower($this->currentUser()->email)])],
         ];
     }
 

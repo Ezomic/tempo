@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Training;
 
+use App\Support\Payload;
+
 class AerobicDecouplingAnalyzer
 {
     /**
@@ -36,12 +38,12 @@ class AerobicDecouplingAnalyzer
         }
 
         $duration = $timestamps[$count - 1] - $timestamps[0];
-        if ($duration < (int) config('training.decoupling.min_seconds')) {
+        if ($duration < Payload::toInt(config('training.decoupling.min_seconds'))) {
             return null;
         }
 
         $speeds = array_map(fn (array $p): float => $p['speed'], $paired);
-        if ($this->coefficientOfVariation($speeds) > (float) config('training.decoupling.max_speed_cov')) {
+        if ($this->coefficientOfVariation($speeds) > Payload::toFloat(config('training.decoupling.max_speed_cov'))) {
             return null; // intervals or fartlek, not a steady effort
         }
 

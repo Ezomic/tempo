@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Training;
 
 use App\Models\PlannedWorkout;
+use App\Support\Payload;
 
 class AdaptivePlanService
 {
@@ -42,6 +43,6 @@ class AdaptivePlanService
 
     private function threshold(): int
     {
-        return (int) config('training.readiness.downgrade_below');
+        return Payload::toInt(config('training.readiness.downgrade_below'));
     }
 }

@@ -7,6 +7,7 @@ namespace App\Services\Training;
 use App\Enums\Sport;
 use App\Models\MeanMaxEffort;
 use App\Models\User;
+use App\Support\Payload;
 
 class RacePredictorService
 {
@@ -24,7 +25,7 @@ class RacePredictorService
             ->mapWithKeys(fn (MeanMaxEffort $e): array => [$e->duration_s => $e->speed_mps])
             ->all();
 
-        $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0.0);
+        $currentCtl = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl'));
 
         return $this->predict($meanMax, $currentCtl);
     }
@@ -106,7 +107,7 @@ class RacePredictorService
      */
     private function riegel(array $reference, int $target, float $fitnessFactor): int
     {
-        $exponent = (float) config('training.predictor.riegel_exponent');
+        $exponent = Payload::toFloat(config('training.predictor.riegel_exponent'));
         $time = $reference['time'] * ($target / $reference['distance']) ** $exponent;
 
         return (int) round($time / $fitnessFactor);
@@ -137,7 +138,7 @@ class RacePredictorService
             return 1.0;
         }
 
-        return ($projectedCtl / $currentCtl) ** (float) config('training.predictor.fitness_exponent');
+        return ($projectedCtl / $currentCtl) ** Payload::toFloat(config('training.predictor.fitness_exponent'));
     }
 
     private function label(int $distanceM): string
@@ -158,6 +159,6 @@ class RacePredictorService
     {
         $value = config('training.predictor.distances_m');
 
-        return is_array($value) ? array_values(array_map(intval(...), $value)) : [];
+        return is_array($value) ? array_values(array_map(static fn (mixed $item): int => Payload::toInt($item), $value)) : [];
     }
 }

@@ -6,7 +6,9 @@ namespace App\Services\Training;
 
 use App\Models\DailyLoadMetric;
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
+use DateTimeInterface;
 
 class FitnessCurveService
 {
@@ -96,8 +98,8 @@ class FitnessCurveService
      */
     public function project(User $user, CarbonImmutable $today, int $days): array
     {
-        $ctl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0.0);
-        $atl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('atl') ?? 0.0);
+        $ctl = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl'));
+        $atl = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('atl'));
 
         $planned = $this->plannedLoad($user, $today->addDay(), $today->addDays($days));
         $ctlLambda = $this->lambda(self::CTL_DAYS);
@@ -174,8 +176,8 @@ class FitnessCurveService
     {
         $first = $user->activities()->orderBy('started_at')->value('started_at');
 
-        return $first !== null
-            ? CarbonImmutable::parse((string) $first)->startOfDay()
+        return $first instanceof DateTimeInterface
+            ? CarbonImmutable::parse($first)->startOfDay()
             : null;
     }
 

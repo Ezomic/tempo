@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DataObjects;
 
+use App\Support\Payload;
+
 final readonly class ConnectionStatus
 {
     public function __construct(
@@ -18,7 +20,7 @@ final readonly class ConnectionStatus
     {
         return new self(
             connected: (bool) ($payload['connected'] ?? false),
-            displayName: isset($payload['display_name']) ? (string) $payload['display_name'] : null,
+            displayName: isset($payload['display_name']) ? Payload::toStr($payload['display_name']) : null,
         );
     }
 }

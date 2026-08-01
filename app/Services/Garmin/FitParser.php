@@ -6,6 +6,7 @@ namespace App\Services\Garmin;
 
 use adriangibbons\phpFITFileAnalysis;
 use App\DataObjects\ParsedActivity;
+use App\Support\Payload;
 
 class FitParser
 {
@@ -21,7 +22,7 @@ class FitParser
 
     private function extract(phpFITFileAnalysis $fit): ParsedActivity
     {
-        $record = is_array($fit->data_mesgs['record'] ?? null) ? $fit->data_mesgs['record'] : [];
+        $record = Payload::assoc($fit->data_mesgs, 'record');
 
         return new ParsedActivity(
             hrSamples: $this->intStream($record['heart_rate'] ?? []),
@@ -30,7 +31,7 @@ class FitParser
                 $record['position_lat'] ?? [],
                 $record['position_long'] ?? [],
             ),
-            laps: $this->laps(is_array($fit->data_mesgs['lap'] ?? null) ? $fit->data_mesgs['lap'] : []),
+            laps: $this->laps(Payload::assoc($fit->data_mesgs, 'lap')),
         );
     }
 

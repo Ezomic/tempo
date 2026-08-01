@@ -11,6 +11,7 @@ use App\Http\Requests\Auth\VerifyLoginCodeRequest;
 use App\Mail\LoginCodeMail;
 use App\Models\User;
 use App\Services\OneTimeCodeService;
+use App\Support\Payload;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,7 +31,7 @@ class EmailLoginCodeController extends Controller
 
     public function store(StoreLoginCodeRequest $request): RedirectResponse
     {
-        $email = Str::lower($request->validated('email'));
+        $email = Str::lower(Payload::toStr($request->validated('email')));
 
         // Only existing users receive a code. The response is identical either
         // way so it doesn't leak who has an account.
@@ -58,13 +59,13 @@ class EmailLoginCodeController extends Controller
 
     public function authenticate(VerifyLoginCodeRequest $request): RedirectResponse
     {
-        $email = $request->session()->get('login-code-email');
+        $email = Payload::toStr($request->session()->get('login-code-email'));
 
-        if ($email === null) {
+        if ($email === '') {
             return to_route('login.code.create');
         }
 
-        $result = $this->codes->verify($this->cacheKey($email), $request->validated('code'));
+        $result = $this->codes->verify($this->cacheKey($email), Payload::toStr($request->validated('code')));
 
         if ($result === CodeVerification::Expired) {
             return back()->withErrors(['code' => 'This code has expired. Request a new one.']);

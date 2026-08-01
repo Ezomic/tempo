@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Chronos;
 
+use App\Support\Payload;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
@@ -45,8 +46,8 @@ final readonly class ChronosClient
             $payload['source'] = $source;
         }
 
-        $response = Http::baseUrl($this->baseUrl)
-            ->withToken($this->token)
+        $response = Http::baseUrl($this->requireBaseUrl())
+            ->withToken($this->requireToken())
             ->acceptJson()
             ->timeout(15)
             ->post('/events', $payload)
@@ -55,8 +56,8 @@ final readonly class ChronosClient
         $json = $response->json();
 
         return [
-            'id' => (string) ($json['id'] ?? ''),
-            'url' => isset($json['url']) ? (string) $json['url'] : null,
+            'id' => Payload::str($json, 'id'),
+            'url' => Payload::nullableStr($json, 'url'),
         ];
     }
 
@@ -72,8 +73,8 @@ final readonly class ChronosClient
             throw new RuntimeException('Chronos integration is not configured.');
         }
 
-        $response = Http::baseUrl($this->baseUrl)
-            ->withToken($this->token)
+        $response = Http::baseUrl($this->requireBaseUrl())
+            ->withToken($this->requireToken())
             ->acceptJson()
             ->timeout(15)
             ->patch("/events/{$eventId}", [
@@ -88,8 +89,8 @@ final readonly class ChronosClient
         $json = $response->json();
 
         return [
-            'id' => (string) ($json['id'] ?? $eventId),
-            'url' => isset($json['url']) ? (string) $json['url'] : null,
+            'id' => Payload::nullableStr($json, 'id') ?? $eventId,
+            'url' => Payload::nullableStr($json, 'url'),
         ];
     }
 
@@ -99,8 +100,8 @@ final readonly class ChronosClient
             throw new RuntimeException('Chronos integration is not configured.');
         }
 
-        Http::baseUrl($this->baseUrl)
-            ->withToken($this->token)
+        Http::baseUrl($this->requireBaseUrl())
+            ->withToken($this->requireToken())
             ->acceptJson()
             ->timeout(15)
             ->delete("/events/{$eventId}")
@@ -121,8 +122,8 @@ final readonly class ChronosClient
         }
 
         try {
-            $response = Http::baseUrl($this->baseUrl)
-                ->withToken($this->token)
+            $response = Http::baseUrl($this->requireBaseUrl())
+                ->withToken($this->requireToken())
                 ->acceptJson()
                 ->timeout(15)
                 ->get('/free-busy', ['from' => $from, 'to' => $to])
@@ -136,5 +137,27 @@ final readonly class ChronosClient
         return is_array($dates)
             ? array_values(array_filter($dates, 'is_string'))
             : [];
+    }
+
+    /**
+     * isConfigured() guards every caller, but PHPStan can't carry that
+     * narrowing across the call, so the accessors restate it.
+     */
+    private function requireBaseUrl(): string
+    {
+        if ($this->baseUrl === null || $this->baseUrl === '') {
+            throw new RuntimeException('Chronos integration is not configured.');
+        }
+
+        return $this->baseUrl;
+    }
+
+    private function requireToken(): string
+    {
+        if ($this->token === null || $this->token === '') {
+            throw new RuntimeException('Chronos integration is not configured.');
+        }
+
+        return $this->token;
     }
 }

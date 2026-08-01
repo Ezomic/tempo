@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Enums\WorkoutType;
 use App\Models\Activity;
 use App\Models\PlannedWorkout;
@@ -26,6 +27,7 @@ use App\Services\Training\TrainingLoadService;
 use App\Services\Training\ZoneCalibrationService;
 use App\Services\Training\ZoneDistributionService;
 use App\Services\Weather\WeatherService;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -34,6 +36,8 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function __construct(
         private readonly TrainingLoadService $load,
         private readonly ReadinessService $readiness,
@@ -56,7 +60,7 @@ class DashboardController extends Controller
 
     public function __invoke(Request $request): Response
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         $today = CarbonImmutable::now();
 
         $load = $this->load->acuteChronic($user, $today);
@@ -109,7 +113,7 @@ class DashboardController extends Controller
             ->get();
 
         $easyPlans = $this->easyPlansByDate($user, $activities);
-        $ceiling = (float) config('training.recovery_ceiling');
+        $ceiling = Payload::toFloat(config('training.recovery_ceiling'));
 
         return array_values($activities
             ->map(function (Activity $activity) use ($easyPlans, $ceiling): array {
@@ -124,7 +128,7 @@ class DashboardController extends Controller
                     'distance_m' => $activity->distance_m,
                     'duration_s' => $activity->duration_s,
                     'trimp' => $activity->trimp,
-                    'recovery_flag' => $easyPlans->has($date)
+                    'recovery_flag' => isset($easyPlans[$date])
                         && (float) ($activity->trimp ?? 0) > $ceiling,
                 ];
             })
@@ -136,9 +140,9 @@ class DashboardController extends Controller
      * keyed by date.
      *
      * @param  Collection<int, Activity>  $activities
-     * @return Collection<string, PlannedWorkout>
+     * @return array<string, PlannedWorkout>
      */
-    private function easyPlansByDate(User $user, Collection $activities): Collection
+    private function easyPlansByDate(User $user, Collection $activities): array
     {
         $dates = $activities
             ->map(fn (Activity $activity): string => $activity->started_at->toDateString())
@@ -147,14 +151,18 @@ class DashboardController extends Controller
             ->all();
 
         if ($dates === []) {
-            return collect();
+            return [];
         }
 
-        return $user->plannedWorkouts()
+        $plans = [];
+        foreach ($user->plannedWorkouts()
             ->whereIn('workout_type', [WorkoutType::Recovery, WorkoutType::Easy])
             ->whereBetween('date', [min($dates).' 00:00:00', max($dates).' 23:59:59'])
-            ->get()
-            ->keyBy(fn (PlannedWorkout $workout): string => $workout->date->toDateString());
+            ->get() as $workout) {
+            $plans[$workout->date->toDateString()] = $workout;
+        }
+
+        return $plans;
     }
 
     /**

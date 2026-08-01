@@ -43,6 +43,11 @@ class RouteLeaderboardService
             }
 
             $first = $ranked->first();
+
+            if ($first === null) {
+                continue;
+            }
+
             $boards[] = [
                 'route_key' => (string) $routeKey,
                 'name' => $this->routeName($first),

@@ -16,8 +16,9 @@ use App\Http\Controllers\WellnessController;
 use App\Http\Controllers\WorkoutTemplateController;
 use App\Http\Controllers\ZoneCalibrationController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
 
 Route::get('p/{token}', [PublicProfileController::class, 'show'])->name('public-profile.show');
 

@@ -33,6 +33,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $generated_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read User $user
  */
 #[Fillable([
     'user_id',

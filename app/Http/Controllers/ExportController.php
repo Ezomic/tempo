@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Models\Activity;
 use App\Services\Export\ActivityExporter;
 use Illuminate\Http\Request;
@@ -13,9 +14,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function activity(Request $request, Activity $activity, string $format, ActivityExporter $exporter): Response
     {
-        abort_unless($activity->user_id === $request->user()->id, 403);
+        abort_unless($activity->user_id === $this->currentUser($request)->id, 403);
 
         $base = 'activity-'.$activity->id;
 
@@ -30,7 +33,7 @@ class ExportController extends Controller
     public function all(Request $request, ActivityExporter $exporter): Response
     {
         return $this->download(
-            $exporter->allActivitiesCsv($request->user()),
+            $exporter->allActivitiesCsv($this->currentUser($request)),
             'tempo-activities.csv',
             'text/csv',
         );

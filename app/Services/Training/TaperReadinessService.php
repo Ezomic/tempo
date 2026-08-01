@@ -7,6 +7,7 @@ namespace App\Services\Training;
 use App\Enums\GoalType;
 use App\Models\TrainingGoal;
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class TaperReadinessService
@@ -48,7 +49,7 @@ class TaperReadinessService
 
     private function nextRace(User $user, CarbonImmutable $today): ?TrainingGoal
     {
-        $window = (int) config('training.taper.window_days');
+        $window = Payload::toInt(config('training.taper.window_days'));
 
         return $user->trainingGoals()
             ->where('type', GoalType::RaceTime)
@@ -64,14 +65,14 @@ class TaperReadinessService
     private function freshnessFactor(User $user): array
     {
         $tsb = $user->dailyLoadMetrics()->orderByDesc('date')->value('tsb');
-        $min = (float) config('training.taper.tsb_min');
-        $max = (float) config('training.taper.tsb_max');
+        $min = Payload::toFloat(config('training.taper.tsb_min'));
+        $max = Payload::toFloat(config('training.taper.tsb_max'));
 
         if ($tsb === null) {
             return $this->factor('freshness', 'Freshness (form)', 'watch', 'No fitness data yet.');
         }
 
-        $tsb = (float) $tsb;
+        $tsb = Payload::toFloat($tsb);
         $state = match (true) {
             $tsb < 0 => 'off',
             $tsb >= $min && $tsb <= $max => 'good',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Training;
 
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class OvertrainingWatchService
@@ -18,8 +19,8 @@ class OvertrainingWatchService
      */
     public function watch(User $user, CarbonImmutable $today): ?array
     {
-        $recentDays = (int) config('training.overtraining.recent_days');
-        $baselineDays = (int) config('training.overtraining.baseline_days');
+        $recentDays = Payload::toInt(config('training.overtraining.recent_days'));
+        $baselineDays = Payload::toInt(config('training.overtraining.baseline_days'));
 
         $recent = $this->window($user, $today->subDays($recentDays - 1), $today);
         $baseline = $this->window($user, $today->subDays($recentDays + $baselineDays - 1), $today->subDays($recentDays));
@@ -62,7 +63,7 @@ class OvertrainingWatchService
         }
 
         $delta = $recent['rhr'] - $baseline['rhr'];
-        if ($delta >= (float) config('training.overtraining.rhr_elevation_bpm')) {
+        if ($delta >= Payload::toFloat(config('training.overtraining.rhr_elevation_bpm'))) {
             return 'Resting HR is up '.round($delta, 1).' bpm on your baseline.';
         }
 
@@ -80,7 +81,7 @@ class OvertrainingWatchService
         }
 
         $dropPct = (($baseline['hrv'] - $recent['hrv']) / $baseline['hrv']) * 100;
-        if ($dropPct >= (float) config('training.overtraining.hrv_drop_pct')) {
+        if ($dropPct >= Payload::toFloat(config('training.overtraining.hrv_drop_pct'))) {
             return 'HRV is down '.round($dropPct).'% on your baseline.';
         }
 
@@ -92,7 +93,7 @@ class OvertrainingWatchService
      */
     private function sleepReason(array $recent): ?string
     {
-        $min = (float) config('training.overtraining.sleep_min_hours');
+        $min = Payload::toFloat(config('training.overtraining.sleep_min_hours'));
         if ($recent['sleep'] !== null && $recent['sleep'] < $min) {
             return 'Averaging '.round($recent['sleep'], 1).' h of sleep, under '.$min.' h.';
         }
@@ -113,17 +114,19 @@ class OvertrainingWatchService
             'rhr' => $this->average($days->pluck('resting_hr')->all()),
             'hrv' => $this->average($days->pluck('hrv_last_night_ms')->all()),
             'sleep' => $this->average($days->pluck('sleep_duration_s')->map(
-                fn (?int $s): ?float => $s === null ? null : $s / 3600
+                fn (mixed $s): ?float => is_numeric($s) ? (float) $s / 3600 : null
             )->all()),
         ];
     }
 
     /**
-     * @param  array<int, int|float|null>  $values
+     * Values come straight off a pluck(), so they arrive untyped.
+     *
+     * @param  array<array-key, mixed>  $values
      */
     private function average(array $values): ?float
     {
-        $present = array_values(array_filter($values, fn ($v): bool => $v !== null));
+        $present = array_values(array_filter($values, is_numeric(...)));
 
         return $present === [] ? null : array_sum($present) / count($present);
     }

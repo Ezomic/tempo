@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Support\Payload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -22,7 +23,7 @@ class WeeklyDigestMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your training week: '.$this->digest['week_label'],
+            subject: 'Your training week: '.Payload::toStr($this->digest['week_label'] ?? null),
         );
     }
 

@@ -179,7 +179,7 @@ class ReadinessService
             ->orderByDesc('date')
             ->limit(30)
             ->pluck('resting_hr')
-            ->filter(fn (?int $hr): bool => $hr !== null && $hr > 0);
+            ->filter(fn (mixed $hr): bool => is_numeric($hr) && $hr > 0);
 
         if ($recent->count() < 3) {
             return null;

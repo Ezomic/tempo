@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Training;
 
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
@@ -75,7 +76,7 @@ class ZoneDistributionService
         }
 
         $total = $easy + $moderate + $hard;
-        $target = (float) config('training.polarization.easy_target');
+        $target = Payload::toFloat(config('training.polarization.easy_target'));
 
         if ($total === 0) {
             return [

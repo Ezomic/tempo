@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DataObjects;
 
+use App\Support\Payload;
+
 final readonly class LoginResult
 {
     public function __construct(
@@ -23,9 +25,9 @@ final readonly class LoginResult
     public static function fromSidecar(array $payload): self
     {
         return new self(
-            status: (string) ($payload['status'] ?? 'ok'),
-            loginToken: isset($payload['login_token']) ? (string) $payload['login_token'] : null,
-            displayName: isset($payload['display_name']) ? (string) $payload['display_name'] : null,
+            status: Payload::toStr($payload['status'] ?? 'ok'),
+            loginToken: isset($payload['login_token']) ? Payload::toStr($payload['login_token']) : null,
+            displayName: isset($payload['display_name']) ? Payload::toStr($payload['display_name']) : null,
         );
     }
 }

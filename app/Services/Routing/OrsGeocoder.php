@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Routing;
 
+use App\Support\Payload;
 use Illuminate\Support\Facades\Http;
 
 final readonly class OrsGeocoder
@@ -34,14 +35,13 @@ final readonly class OrsGeocoder
             ])
             ->throw();
 
-        /** @var array<int, array<string, mixed>> $features */
-        $features = $response->json('features', []);
+        $features = Payload::arr($response->json(), 'features');
 
         return array_values(array_filter(array_map(
-            static fn (array $feature): array => [
-                'label' => (string) ($feature['properties']['label'] ?? ''),
-                'lat' => (float) ($feature['geometry']['coordinates'][1] ?? 0),
-                'lng' => (float) ($feature['geometry']['coordinates'][0] ?? 0),
+            static fn (mixed $feature): array => [
+                'label' => Payload::str($feature, 'properties', 'label'),
+                'lat' => Payload::float($feature, 'geometry', 'coordinates', 1),
+                'lng' => Payload::float($feature, 'geometry', 'coordinates', 0),
             ],
             $features,
         ), static fn (array $r): bool => $r['label'] !== ''));

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Training;
 
+use App\Support\Payload;
+
 class EffortAnalyzer
 {
     /**
@@ -141,7 +143,7 @@ class EffortAnalyzer
     private function intList(mixed $value): array
     {
         return is_array($value)
-            ? array_values(array_map(intval(...), $value))
+            ? array_values(array_map(static fn (mixed $item): int => Payload::toInt($item), $value))
             : [];
     }
 }

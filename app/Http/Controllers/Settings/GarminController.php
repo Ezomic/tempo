@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Settings;
 
 use App\Actions\ConnectGarminAction;
+use App\Concerns\InteractsWithCurrentUser;
 use App\Exceptions\GarminConnectException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\CompleteGarminMfaRequest;
@@ -21,9 +22,11 @@ use Throwable;
 
 class GarminController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function edit(Request $request): Response
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         $connection = $user->garminConnection;
         $settings = $user->hrZoneSettings;
 
@@ -99,7 +102,7 @@ class GarminController extends Controller
 
     public function sync(Request $request): RedirectResponse
     {
-        $connection = $request->user()->garminConnection;
+        $connection = $this->currentUser($request)->garminConnection;
 
         abort_if($connection === null || ! $connection->isConnected(), 422);
 
@@ -111,7 +114,7 @@ class GarminController extends Controller
     public function updateSettings(UpdateHrZoneSettingsRequest $request): RedirectResponse
     {
         HrZoneSettings::query()->updateOrCreate(
-            ['user_id' => $request->user()->id],
+            ['user_id' => $this->currentUser($request)->id],
             $request->validated(),
         );
 
@@ -120,13 +123,13 @@ class GarminController extends Controller
 
     public function disconnect(Request $request): RedirectResponse
     {
-        $request->user()->garminConnection?->delete();
+        $this->currentUser($request)->garminConnection?->delete();
 
         return back()->with('status', 'Garmin account disconnected.');
     }
 
     private function connectionFor(Request $request): GarminConnection
     {
-        return GarminConnection::query()->firstOrCreate(['user_id' => $request->user()->id]);
+        return GarminConnection::query()->firstOrCreate(['user_id' => $this->currentUser($request)->id]);
     }
 }

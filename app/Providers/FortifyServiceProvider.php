@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Payload;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -56,19 +57,19 @@ class FortifyServiceProvider extends ServiceProvider
 
         // Kept because Fortify's (now non-functional) login route references it.
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower((string) $request->input('email')).'|'.$request->ip());
+            $throttleKey = Str::transliterate(Str::lower(Payload::toStr($request->input('email'))).'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
         });
 
         RateLimiter::for('passkeys', function (Request $request) {
             return Limit::perMinute(10)->by(
-                ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
+                (Payload::toStr($request->input('credential.id')) ?: $request->session()->getId()).'|'.$request->ip(),
             );
         });
 
         RateLimiter::for('login-code', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower((string) $request->input('email')).'|'.$request->ip());
+            $throttleKey = Str::transliterate(Str::lower(Payload::toStr($request->input('email'))).'|'.$request->ip());
 
             return Limit::perMinute(3)->by($throttleKey);
         });

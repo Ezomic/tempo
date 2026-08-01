@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\CodeVerification;
+use App\Support\Payload;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 
@@ -30,16 +31,18 @@ class OneTimeCodeService
 
     public function verify(string $key, string $code): CodeVerification
     {
-        $entry = Cache::get($key);
+        $entry = Payload::assoc(Cache::get($key));
+        $hash = Payload::toStr($entry['hash'] ?? null);
+        $attempts = Payload::toInt($entry['attempts'] ?? null);
 
-        if ($entry === null || $entry['attempts'] >= self::MAX_ATTEMPTS) {
+        if ($hash === '' || $attempts >= self::MAX_ATTEMPTS) {
             Cache::forget($key);
 
             return CodeVerification::Expired;
         }
 
-        if (! Hash::check($code, $entry['hash'])) {
-            Cache::put($key, [...$entry, 'attempts' => $entry['attempts'] + 1], now()->addMinutes(self::TTL_MINUTES));
+        if (! Hash::check($code, $hash)) {
+            Cache::put($key, [...$entry, 'attempts' => $attempts + 1], now()->addMinutes(self::TTL_MINUTES));
 
             return CodeVerification::Incorrect;
         }

@@ -6,6 +6,7 @@ namespace App\Services\Weather;
 
 use App\Models\PlannedWorkout;
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class WeatherService
@@ -89,16 +90,16 @@ class WeatherService
 
     private function horizonDays(): int
     {
-        return (int) config('training.weather.horizon_days');
+        return Payload::toInt(config('training.weather.horizon_days'));
     }
 
     private function heatThreshold(): float
     {
-        return (float) config('training.weather.heat_c');
+        return Payload::toFloat(config('training.weather.heat_c'));
     }
 
     private function windThreshold(): float
     {
-        return (float) config('training.weather.wind_kmh');
+        return Payload::toFloat(config('training.weather.wind_kmh'));
     }
 }

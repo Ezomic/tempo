@@ -9,6 +9,7 @@ use App\Enums\Sport;
 use App\Models\MeanMaxEffort;
 use App\Models\TrainingGoal;
 use App\Models\User;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 
 class GoalProgressService
@@ -36,7 +37,7 @@ class GoalProgressService
      */
     private function evaluateCtl(TrainingGoal $goal, User $user, CarbonImmutable $today, int $daysLeft): array
     {
-        $current = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0.0);
+        $current = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl'));
         $slope = $this->ctlSlope($user, $today);
         $projected = round(max(0.0, $current + $slope * max($daysLeft, 0)), 1);
         $target = $goal->target_value;
@@ -72,7 +73,7 @@ class GoalProgressService
             ->all();
 
         $distance = $goal->distance_m ?? 0;
-        $currentCtl = (float) ($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl') ?? 0.0);
+        $currentCtl = Payload::toFloat($user->dailyLoadMetrics()->orderByDesc('date')->value('ctl'));
         $projectedCtl = max(0.0, $currentCtl + $this->ctlSlope($user, $today) * max($daysLeft, 0));
 
         $now = $this->predictor->predictOne($meanMax, $distance, $currentCtl);
@@ -121,13 +122,13 @@ class GoalProgressService
             ->orderBy('date')
             ->get(['ctl']);
 
-        if ($points->count() < 2) {
+        $first = $points->first();
+        $last = $points->last();
+
+        if ($points->count() < 2 || $first === null || $last === null) {
             return 0.0;
         }
 
-        $first = (float) $points->first()->ctl;
-        $last = (float) $points->last()->ctl;
-
-        return ($last - $first) / max(1, $points->count() - 1);
+        return ($last->ctl - $first->ctl) / max(1, $points->count() - 1);
     }
 }

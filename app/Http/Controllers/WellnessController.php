@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\Training\WellnessTrendService;
@@ -14,11 +15,13 @@ use Inertia\Response;
 
 class WellnessController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     private const RANGES = [14, 42, 90];
 
     public function index(Request $request, WellnessTrendService $trend): Response
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         $days = (int) $request->integer('days', 42);
         if (! in_array($days, self::RANGES, true)) {
             $days = 42;

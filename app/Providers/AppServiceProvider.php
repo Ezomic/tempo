@@ -10,6 +10,7 @@ use App\Services\Routing\OrsRouteGenerator;
 use App\Services\Routing\RouteGenerator;
 use App\Services\Weather\OpenMeteoForecaster;
 use App\Services\Weather\WeatherForecaster;
+use App\Support\Payload;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -24,27 +25,27 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(GarminClient::class, fn (): SidecarGarminClient => new SidecarGarminClient(
-            baseUrl: (string) config('services.garmin_sidecar.url'),
-            secret: (string) config('services.garmin_sidecar.secret'),
+            baseUrl: Payload::toStr(config('services.garmin_sidecar.url')),
+            secret: Payload::toStr(config('services.garmin_sidecar.secret')),
         ));
 
         $this->app->bind(ChronosClient::class, fn (): ChronosClient => new ChronosClient(
-            baseUrl: config('services.chronos.url'),
-            token: config('services.chronos.token'),
+            baseUrl: Payload::nullableStr(config('services.chronos.url')),
+            token: Payload::nullableStr(config('services.chronos.token')),
         ));
 
         $this->app->bind(WeatherForecaster::class, fn (): OpenMeteoForecaster => new OpenMeteoForecaster(
-            baseUrl: (string) config('services.weather.url'),
+            baseUrl: Payload::toStr(config('services.weather.url')),
         ));
 
         $this->app->bind(RouteGenerator::class, fn (): OrsRouteGenerator => new OrsRouteGenerator(
-            baseUrl: config('services.ors.url'),
-            key: config('services.ors.key'),
+            baseUrl: Payload::nullableStr(config('services.ors.url')),
+            key: Payload::nullableStr(config('services.ors.key')),
         ));
 
         $this->app->bind(OrsGeocoder::class, fn (): OrsGeocoder => new OrsGeocoder(
-            baseUrl: config('services.ors.url'),
-            key: config('services.ors.key'),
+            baseUrl: Payload::nullableStr(config('services.ors.url')),
+            key: Payload::nullableStr(config('services.ors.key')),
         ));
     }
 

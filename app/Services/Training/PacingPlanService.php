@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Training;
 
+use App\Support\Payload;
+
 class PacingPlanService
 {
     /**
@@ -91,8 +93,8 @@ class PacingPlanService
     private function weatherFactor(?float $tempC, ?float $windKmh): float
     {
         $factor = 1.0;
-        $heatC = (float) config('training.weather.heat_c');
-        $windLimit = (float) config('training.weather.wind_kmh');
+        $heatC = Payload::toFloat(config('training.weather.heat_c'));
+        $windLimit = Payload::toFloat(config('training.weather.wind_kmh'));
 
         if ($tempC !== null && $tempC > $heatC) {
             $factor += ($tempC - $heatC) * 0.005;

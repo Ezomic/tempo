@@ -97,3 +97,15 @@ it('deletes the chronos event when the plan is removed', function () {
         && str_contains($request->url(), '/events/evt_1'));
     expect(PlannedWorkout::find($workout->id))->toBeNull();
 });
+
+it('stores a numeric chronos event id, which is what the api actually returns', function () {
+    configureChronosSync();
+    Http::fake(['chronos.test/*' => Http::response(['id' => 4211, 'url' => 'https://chronos.test/cal'], 201)]);
+
+    $user = User::factory()->create();
+    $workout = pushableWorkout($user);
+
+    app(PushPlannedWorkoutAction::class)->handle($workout);
+
+    expect($workout->refresh()->chronos_event_id)->toBe('4211');
+});

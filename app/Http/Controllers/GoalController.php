@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\InteractsWithCurrentUser;
 use App\Enums\GoalType;
 use App\Http\Requests\StoreGoalRequest;
 use App\Models\TrainingGoal;
@@ -16,6 +17,8 @@ use Inertia\Response;
 
 class GoalController extends Controller
 {
+    use InteractsWithCurrentUser;
+
     public function index(Request $request, GoalProgressService $progress): Response
     {
         return Inertia::render('goals/Index', [
@@ -26,14 +29,14 @@ class GoalController extends Controller
 
     public function store(StoreGoalRequest $request): RedirectResponse
     {
-        $request->user()->trainingGoals()->create($request->validated());
+        $this->currentUser($request)->trainingGoals()->create($request->validated());
 
         return back()->with('status', 'Goal added.');
     }
 
     public function destroy(Request $request, TrainingGoal $goal): RedirectResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $this->currentUser($request)->id, 403);
 
         $goal->delete();
 
@@ -45,7 +48,7 @@ class GoalController extends Controller
      */
     private function goalsWithProgress(Request $request, GoalProgressService $progress): array
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         $today = CarbonImmutable::now();
 
         return array_values($user->trainingGoals()
