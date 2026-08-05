@@ -7,11 +7,16 @@ use App\Models\User;
 use App\Models\WellnessDay;
 use App\Services\Training\ReadinessService;
 
+/**
+ * These cases are about how a current reading is scored and summarised, so the
+ * day has to stay current. A pinned date silently ages into staleness and
+ * changes what the summary says.
+ */
 function wellness(User $user, array $attributes): void
 {
     WellnessDay::create(array_merge([
         'user_id' => $user->id,
-        'date' => '2026-07-15',
+        'date' => now()->toDateString(),
     ], $attributes));
 }
 

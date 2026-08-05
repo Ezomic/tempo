@@ -31,7 +31,8 @@ class DailyRecommendationService
 
         $ratio = $this->load->acuteChronic($user, $today)['ratio'];
         $readiness = $this->readiness->snapshot($user, $ratio);
-        $score = $readiness['score'] ?? null;
+        // Stale recovery data must not drive a recommendation for today.
+        $score = $this->readiness->actionableScore($readiness);
         $guardStatus = $this->guardrails->guardrails($user, $today)['status'];
         $weather = $plan !== null ? $this->weather->forOutdoorSession($plan, $user, $today) : null;
 
