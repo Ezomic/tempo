@@ -47,6 +47,10 @@ class GarminController extends Controller
             'stats' => [
                 'activities' => $user->activities()->count(),
                 'wellness_days' => $user->wellnessDays()->count(),
+                'missing_archives' => $user->activities()
+                    ->whereNull('fit_path')
+                    ->whereNotNull('fit_failed_at')
+                    ->count(),
             ],
             'login_token' => $request->session()->get('garmin_login_token'),
         ]);

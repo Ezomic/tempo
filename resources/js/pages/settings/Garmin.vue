@@ -35,6 +35,7 @@ interface Settings {
 interface Stats {
     activities: number;
     wellness_days: number;
+    missing_archives: number;
 }
 
 const props = defineProps<{
@@ -295,7 +296,22 @@ const awaitingMfa = computed(() => !!props.login_token);
                         </div>
                         <div class="text-muted-foreground">Wellness days</div>
                     </div>
+                    <div v-if="stats.missing_archives > 0">
+                        <div class="text-2xl font-semibold text-destructive">
+                            {{ stats.missing_archives }}
+                        </div>
+                        <div class="text-muted-foreground">
+                            Missing .fit files
+                        </div>
+                    </div>
                 </div>
+                <p
+                    v-if="stats.missing_archives > 0"
+                    class="mt-4 text-sm text-muted-foreground"
+                >
+                    These activities count as zero training load until their
+                    file is recovered. The next sync retries them automatically.
+                </p>
             </CardContent>
         </Card>
     </div>

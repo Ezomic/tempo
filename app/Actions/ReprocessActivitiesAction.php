@@ -6,18 +6,12 @@ namespace App\Actions;
 
 use App\DataObjects\ParsedActivity;
 use App\DataObjects\ReprocessResult;
-use App\Enums\Sport;
 use App\Models\Activity;
 use App\Models\HrZoneSettings;
 use App\Models\User;
+use App\Services\Garmin\ActivityMetrics;
 use App\Services\Garmin\FitParser;
 use App\Services\Garmin\StreamBuilder;
-use App\Services\Garmin\TrimpCalculator;
-use App\Services\Routing\RouteSignature;
-use App\Services\Training\AerobicDecouplingAnalyzer;
-use App\Services\Training\CardiacCostAnalyzer;
-use App\Services\Training\EfficiencyFactorAnalyzer;
-use App\Services\Training\EffortAnalyzer;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\PerformanceRecordService;
 use Carbon\CarbonImmutable;
@@ -29,15 +23,10 @@ class ReprocessActivitiesAction
 {
     public function __construct(
         private readonly FitParser $fitParser,
-        private readonly TrimpCalculator $trimp,
         private readonly StreamBuilder $streamBuilder,
-        private readonly EffortAnalyzer $effort,
+        private readonly ActivityMetrics $metrics,
         private readonly FitnessCurveService $fitnessCurve,
         private readonly PerformanceRecordService $records,
-        private readonly AerobicDecouplingAnalyzer $decoupling,
-        private readonly EfficiencyFactorAnalyzer $efficiency,
-        private readonly CardiacCostAnalyzer $cardiac,
-        private readonly RouteSignature $routeSignature,
     ) {}
 
     /**
@@ -93,42 +82,11 @@ class ReprocessActivitiesAction
     }
 
     /**
-     * Derive the stored metrics from a parsed activity. Each metric is a step
-     * over the record stream; future metrics plug in here.
-     *
      * @return array<string, mixed>
      */
     private function derive(Activity $activity, ParsedActivity $parsed, HrZoneSettings $settings): array
     {
-        $attributes = [];
-
-        if ($parsed->hasHeartRate()) {
-            $attributes['trimp'] = $this->trimp->trimp($parsed->hrSamples, $settings);
-            $attributes['hr_zone_seconds'] = $this->trimp->zoneSeconds($parsed->hrSamples, $settings);
-        }
-
-        if ($parsed->speedSamples !== []) {
-            if ($activity->sport === Sport::Run) {
-                $attributes['best_efforts'] = $this->effort->bestEfforts($parsed->speedSamples);
-            }
-            $attributes['mean_max'] = $this->effort->meanMax($parsed->speedSamples);
-        }
-
-        if ($parsed->laps !== []) {
-            $attributes['laps'] = $parsed->laps;
-        }
-
-        if ($parsed->hasHeartRate() && $parsed->speedSamples !== []) {
-            $attributes['decoupling'] = $this->decoupling->analyze($parsed->hrSamples, $parsed->speedSamples);
-            $attributes['efficiency_factor'] = $this->efficiency->analyze($parsed->hrSamples, $parsed->speedSamples);
-            $cardiac = $this->cardiac->analyze($parsed->hrSamples, $parsed->speedSamples);
-            $attributes['cardiac_cost'] = $cardiac['cardiac_cost'] ?? null;
-            $attributes['hr_drift'] = $cardiac['hr_drift'] ?? null;
-        }
-
-        if ($parsed->positions !== []) {
-            $attributes['route_key'] = $this->routeSignature->forPositions($parsed->positions, $activity->distance_m);
-        }
+        $attributes = $this->metrics->derive($parsed, $activity->sport, $activity->distance_m, $settings);
 
         $streamsPath = "garmin/streams/{$activity->user_id}/{$activity->external_id}.json";
         Storage::disk('local')->put($streamsPath, (string) json_encode($this->streamBuilder->build($parsed)));
