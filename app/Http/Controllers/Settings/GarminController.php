@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Settings;
 
 use App\Actions\ConnectGarminAction;
+use App\Actions\DisconnectGarminAction;
 use App\Concerns\InteractsWithCurrentUser;
 use App\Exceptions\GarminConnectException;
 use App\Http\Controllers\Controller;
@@ -131,11 +132,13 @@ class GarminController extends Controller
         return back()->with('status', 'Heart-rate settings saved.');
     }
 
-    public function disconnect(Request $request): RedirectResponse
+    public function disconnect(Request $request, DisconnectGarminAction $action): RedirectResponse
     {
-        $this->currentUser($request)->garminConnection?->delete();
+        $forgotten = $action->handle($this->currentUser($request));
 
-        return back()->with('status', 'Garmin account disconnected.');
+        return back()->with('status', $forgotten
+            ? 'Garmin account disconnected.'
+            : 'Disconnected here, but the Garmin session could not be ended. Change your Garmin password if you want it revoked now.');
     }
 
     private function connectionFor(Request $request): GarminConnection

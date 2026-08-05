@@ -26,6 +26,9 @@ function fitClient(bool $downloadWorks, bool $returnsEmpty = false): GarminClien
 {
     return new class($downloadWorks, $returnsEmpty) implements GarminClient
     {
+        /** @var list<int> */
+        public array $forgotten = [];
+
         public int $downloadAttempts = 0;
 
         public function __construct(private bool $downloadWorks, private bool $returnsEmpty) {}
@@ -38,6 +41,13 @@ function fitClient(bool $downloadWorks, bool $returnsEmpty = false): GarminClien
         public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
         {
             return new LoginResult('ok');
+        }
+
+        public function forget(GarminConnection $connection): void
+        {
+
+            $this->forgotten[] = $connection->id;
+
         }
 
         public function status(GarminConnection $connection): ConnectionStatus

@@ -29,6 +29,9 @@ function throwingGarminClient(Throwable $e): GarminClient
 {
     return new class($e) implements GarminClient
     {
+        /** @var list<int> */
+        public array $forgotten = [];
+
         public function __construct(private Throwable $e) {}
 
         public function login(GarminConnection $connection, string $email, string $password): LoginResult
@@ -39,6 +42,13 @@ function throwingGarminClient(Throwable $e): GarminClient
         public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
         {
             throw $this->e;
+        }
+
+        public function forget(GarminConnection $connection): void
+        {
+
+            $this->forgotten[] = $connection->id;
+
         }
 
         public function status(GarminConnection $connection): ConnectionStatus

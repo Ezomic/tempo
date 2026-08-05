@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\DisconnectGarminAction;
 use App\Concerns\InteractsWithCurrentUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
@@ -49,9 +50,14 @@ class ProfileController extends Controller
     /**
      * Delete the user's profile.
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(ProfileDeleteRequest $request, DisconnectGarminAction $garmin): RedirectResponse
     {
         $user = $this->currentUser($request);
+
+        // The Garmin session and the archived .fit files outlive the cascade,
+        // so they have to be taken down before the row goes.
+        $garmin->handle($user);
+        $garmin->purgeArchives($user);
 
         Auth::logout();
 
