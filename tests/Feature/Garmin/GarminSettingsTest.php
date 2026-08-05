@@ -18,6 +18,9 @@ function stubClient(LoginResult $loginResult): GarminClient
 {
     return new class($loginResult) implements GarminClient
     {
+        /** @var list<int> */
+        public array $forgotten = [];
+
         public function __construct(private LoginResult $loginResult) {}
 
         public function login(GarminConnection $connection, string $email, string $password): LoginResult
@@ -28,6 +31,13 @@ function stubClient(LoginResult $loginResult): GarminClient
         public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
         {
             return new LoginResult('ok', displayName: 'Test Athlete');
+        }
+
+        public function forget(GarminConnection $connection): void
+        {
+
+            $this->forgotten[] = $connection->id;
+
         }
 
         public function status(GarminConnection $connection): ConnectionStatus
@@ -134,6 +144,9 @@ it('disconnects a Garmin account', function () {
 it('surfaces a generic error instead of a 500 when Garmin sign-in fails', function () {
     $throwing = new class implements GarminClient
     {
+        /** @var list<int> */
+        public array $forgotten = [];
+
         public function login(GarminConnection $connection, string $email, string $password): LoginResult
         {
             throw new RuntimeException('garth: 401 unauthorized for https://sso.garmin.com/...');
@@ -142,6 +155,13 @@ it('surfaces a generic error instead of a 500 when Garmin sign-in fails', functi
         public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
         {
             return new LoginResult('ok');
+        }
+
+        public function forget(GarminConnection $connection): void
+        {
+
+            $this->forgotten[] = $connection->id;
+
         }
 
         public function status(GarminConnection $connection): ConnectionStatus

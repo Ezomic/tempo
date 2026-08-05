@@ -56,6 +56,15 @@ final readonly class SidecarGarminClient implements GarminClient
         return ConnectionStatus::fromSidecar(Payload::assoc($response->json()));
     }
 
+    public function forget(GarminConnection $connection): void
+    {
+        try {
+            $this->request()->delete("/connections/{$connection->id}")->throw();
+        } catch (ConnectionException $e) {
+            throw GarminConnectException::unreachable($e);
+        }
+    }
+
     public function activities(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $end): array
     {
         $response = $this->request()->get('/activities', [

@@ -21,6 +21,9 @@ function wellnessClient(array $failOn): GarminClient
 {
     return new class($failOn) implements GarminClient
     {
+        /** @var list<int> */
+        public array $forgotten = [];
+
         /** @var list<string> */
         public array $requested = [];
 
@@ -34,6 +37,13 @@ function wellnessClient(array $failOn): GarminClient
         public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
         {
             return new LoginResult('ok');
+        }
+
+        public function forget(GarminConnection $connection): void
+        {
+
+            $this->forgotten[] = $connection->id;
+
         }
 
         public function status(GarminConnection $connection): ConnectionStatus

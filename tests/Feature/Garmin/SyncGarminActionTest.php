@@ -23,6 +23,9 @@ function fakeGarminClient(): GarminClient
 {
     return new class implements GarminClient
     {
+        /** @var list<int> */
+        public array $forgotten = [];
+
         public function login(GarminConnection $connection, string $email, string $password): LoginResult
         {
             return new LoginResult('ok');
@@ -31,6 +34,13 @@ function fakeGarminClient(): GarminClient
         public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
         {
             return new LoginResult('ok');
+        }
+
+        public function forget(GarminConnection $connection): void
+        {
+
+            $this->forgotten[] = $connection->id;
+
         }
 
         public function status(GarminConnection $connection): ConnectionStatus

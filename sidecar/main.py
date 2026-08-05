@@ -198,6 +198,21 @@ def status(connection_id: str = Query(...), _: None = Depends(require_secret)) -
         return {"connected": False, "display_name": None}
 
 
+@app.delete("/connections/{connection_id}")
+def delete_connection(connection_id: str, _: None = Depends(require_secret)) -> dict[str, Any]:
+    # Disconnecting in Tempo has to end the Garmin session too, otherwise these
+    # tokens keep working for an account the athlete believes is disconnected.
+    path = token_dir(connection_id)
+    removed = False
+    for entry in path.iterdir():
+        if entry.is_file():
+            entry.unlink()
+            removed = True
+    path.rmdir()
+
+    return {"status": "ok", "removed": removed}
+
+
 @app.get("/activities")
 def activities(
     connection_id: str = Query(...),

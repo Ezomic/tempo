@@ -20,6 +20,12 @@ interface GarminClient
     public function status(GarminConnection $connection): ConnectionStatus;
 
     /**
+     * Drop the stored Garmin session for this connection on the sidecar, so
+     * disconnecting in Tempo actually ends it.
+     */
+    public function forget(GarminConnection $connection): void;
+
+    /**
      * @return array<int, ActivitySummary>
      */
     public function activities(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $end): array;
