@@ -78,3 +78,26 @@ visudo -cf /etc/sudoers.d/tempo-sidecar-deploy
 
 Pin `garminconnect` in `requirements.txt` to the exact version the droplet's
 Python runs (currently `0.3.2` on Python 3.10) so dev and prod never drift.
+
+## Health
+
+`GET /health` is the one route that answers without the shared secret:
+
+```bash
+curl -s http://127.0.0.1:8790/health
+# {"status":"ok","garminconnect":"0.3.2","token_store_writable":true}
+```
+
+Unauthenticated is safe here because the service is bound to loopback, and
+because the response says only whether the process is up and can still write
+its token store. It never names a connection or an athlete. Every other route
+keeps the secret guard.
+
+The unit uses it as an `ExecStartPost` gate (`deploy/healthcheck.py`), so a
+start that binds the port but cannot serve shows up as a failed unit rather
+than an active one. `systemctl status tempo-sidecar` is therefore meaningful
+again.
+
+To have the **status** app watch the sidecar, point a check at
+`http://127.0.0.1:8790/health` from the droplet itself. It cannot be polled
+from off-box, by design.

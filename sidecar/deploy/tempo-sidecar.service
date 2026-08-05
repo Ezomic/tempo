@@ -11,6 +11,9 @@ WorkingDirectory=/opt/tempo-sidecar
 EnvironmentFile=/etc/tempo-sidecar/env
 # Bound to localhost only: nothing off-box can reach it.
 ExecStart=/opt/tempo-sidecar/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8790
+# A bound port is not the same as a working service, so the unit is only
+# considered started once /health answers.
+ExecStartPost=/opt/tempo-sidecar/.venv/bin/python /opt/tempo-sidecar/deploy/healthcheck.py
 Restart=on-failure
 RestartSec=5
 
