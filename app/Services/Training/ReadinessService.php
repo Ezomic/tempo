@@ -7,6 +7,7 @@ namespace App\Services\Training;
 use App\Enums\HrvStatus;
 use App\Models\User;
 use App\Models\WellnessDay;
+use Carbon\CarbonImmutable;
 
 class ReadinessService
 {
@@ -17,11 +18,18 @@ class ReadinessService
     private const REST = 'rest';
 
     /**
+     * Recovery data older than this is history, not a verdict on today. Garmin
+     * data lands the morning after a night's sleep, so one day behind is normal
+     * and anything beyond that means sync has stopped.
+     */
+    public const STALE_AFTER_DAYS = 2;
+
+    /**
      * Today-ish readiness from the most recent wellness day, tempered by how
      * hard recent training has been (the acute:chronic ratio). The score is
      * the sum of named contributors so it can be explained.
      *
-     * @return array{score: int, verdict: string, hrv_status: string|null, body_battery: int|null, resting_hr: int|null, date: string, contributors: list<array{key: string, label: string, detail: string, impact: int, direction: string}>, summary: string}|null
+     * @return array{score: int, verdict: string, hrv_status: string|null, body_battery: int|null, resting_hr: int|null, date: string, age_days: int, stale: bool, contributors: list<array{key: string, label: string, detail: string, impact: int, direction: string}>, summary: string}|null
      */
     public function snapshot(User $user, ?float $acwr): ?array
     {
@@ -33,6 +41,8 @@ class ReadinessService
 
         $contributors = $this->contributors($day, $acwr, $this->restingBaseline($user, $day));
         $score = $this->score($contributors);
+        $ageDays = $this->ageInDays($day);
+        $stale = $ageDays > self::STALE_AFTER_DAYS;
 
         return [
             'score' => $score,
@@ -41,9 +51,36 @@ class ReadinessService
             'body_battery' => $day->body_battery_high,
             'resting_hr' => $day->resting_hr,
             'date' => $day->date->toDateString(),
+            'age_days' => $ageDays,
+            'stale' => $stale,
             'contributors' => $contributors,
-            'summary' => $this->summary($score, $contributors),
+            'summary' => $stale
+                ? "Recovery data is {$ageDays} days old, so this is not a reading on today."
+                : $this->summary($score, $contributors),
         ];
+    }
+
+    /**
+     * The score only when it still describes today. Everything that acts on
+     * readiness rather than displaying it goes through this, so stale data is
+     * treated as no data instead of a real signal.
+     *
+     * @param  array{score?: int, stale?: bool}|null  $snapshot
+     */
+    public function actionableScore(?array $snapshot): ?int
+    {
+        if ($snapshot === null || ($snapshot['stale'] ?? false)) {
+            return null;
+        }
+
+        return $snapshot['score'] ?? null;
+    }
+
+    private function ageInDays(WellnessDay $day): int
+    {
+        return (int) max(0, $day->date
+            ->startOfDay()
+            ->diffInDays(CarbonImmutable::now()->startOfDay(), absolute: false));
     }
 
     /**

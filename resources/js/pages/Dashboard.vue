@@ -28,6 +28,8 @@ interface Readiness {
     body_battery: number | null;
     resting_hr: number | null;
     date: string;
+    age_days: number;
+    stale: boolean;
     contributors: Contributor[];
     summary: string;
 }
@@ -329,22 +331,26 @@ const ringOffset = computed(() => {
     return RING_CIRCUMFERENCE * (1 - score / 100);
 });
 
-const verdictStroke = computed<string>(
-    () =>
-        ({
-            ready: 'stroke-primary',
-            caution: 'stroke-amber-500',
-            rest: 'stroke-red-500',
-        })[props.readiness?.verdict ?? 'ready'] ?? 'stroke-primary',
+// Stale data keeps its shape but loses its colour: it is a record of the last
+// day that synced, not a verdict on today.
+const verdictStroke = computed<string>(() =>
+    props.readiness?.stale
+        ? 'stroke-muted-foreground/40'
+        : ({
+              ready: 'stroke-primary',
+              caution: 'stroke-amber-500',
+              rest: 'stroke-red-500',
+          }[props.readiness?.verdict ?? 'ready'] ?? 'stroke-primary'),
 );
 
-const verdictText = computed<string>(
-    () =>
-        ({
-            ready: 'text-primary',
-            caution: 'text-amber-500',
-            rest: 'text-red-500',
-        })[props.readiness?.verdict ?? 'ready'] ?? 'text-primary',
+const verdictText = computed<string>(() =>
+    props.readiness?.stale
+        ? 'text-muted-foreground'
+        : ({
+              ready: 'text-primary',
+              caution: 'text-amber-500',
+              rest: 'text-red-500',
+          }[props.readiness?.verdict ?? 'ready'] ?? 'text-primary'),
 );
 
 const verdictLabel: Record<string, string> = {
@@ -829,8 +835,22 @@ function duration(seconds: number | null): string {
                 <section class="rounded-xl border bg-card p-5">
                     <div class="mb-1 flex items-baseline justify-between">
                         <h2 class="text-sm font-bold">Readiness</h2>
-                        <span class="text-xs text-muted-foreground">
-                            {{ readiness ? readiness.date : 'No wellness yet' }}
+                        <span
+                            class="text-xs"
+                            :class="
+                                readiness?.stale
+                                    ? 'font-medium text-amber-600 dark:text-amber-500'
+                                    : 'text-muted-foreground'
+                            "
+                        >
+                            <template v-if="!readiness"
+                                >No wellness yet</template
+                            >
+                            <template v-else-if="readiness.stale">
+                                {{ readiness.date }} ({{ readiness.age_days }}
+                                days old)
+                            </template>
+                            <template v-else>{{ readiness.date }}</template>
                         </span>
                     </div>
 
@@ -865,6 +885,11 @@ function duration(seconds: number | null): string {
                             >
                                 <div
                                     class="text-4xl font-extrabold tracking-tight"
+                                    :class="
+                                        readiness.stale
+                                            ? 'text-muted-foreground'
+                                            : ''
+                                    "
                                 >
                                     {{ readiness.score }}
                                 </div>
@@ -872,15 +897,31 @@ function duration(seconds: number | null): string {
                                     class="mt-1 text-sm font-semibold"
                                     :class="verdictText"
                                 >
-                                    {{ verdictLabel[readiness.verdict] }}
+                                    {{
+                                        readiness.stale
+                                            ? 'Out of date'
+                                            : verdictLabel[readiness.verdict]
+                                    }}
                                 </div>
                             </div>
                         </div>
 
                         <p
-                            class="rounded-lg bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                            class="rounded-lg px-3 py-2.5 text-sm"
+                            :class="
+                                readiness.stale
+                                    ? 'border border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400'
+                                    : 'bg-muted/50 text-muted-foreground'
+                            "
                         >
                             {{ readiness.summary }}
+                            <Link
+                                v-if="readiness.stale"
+                                :href="garminSettings()"
+                                class="font-medium underline underline-offset-2"
+                            >
+                                Check your Garmin sync.
+                            </Link>
                         </p>
 
                         <div class="space-y-1.5">

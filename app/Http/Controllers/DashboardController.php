@@ -92,7 +92,10 @@ class DashboardController extends Controller
             'recommendation' => $this->recommendation->forToday($user, $today),
             'reschedule' => $this->reschedule->suggestion($user, $today),
             'todayPlan' => $this->todayPlan($todayPlan),
-            'adaptiveSuggestion' => $this->adaptive->suggestion($todayPlan, $readiness['score'] ?? null),
+            'adaptiveSuggestion' => $this->adaptive->suggestion(
+                $todayPlan,
+                $this->readiness->actionableScore($readiness),
+            ),
             'todayWeather' => $todayPlan !== null
                 ? $this->weather->forOutdoorSession($todayPlan, $user, $today)
                 : null,
