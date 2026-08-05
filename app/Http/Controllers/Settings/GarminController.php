@@ -15,6 +15,7 @@ use App\Http\Requests\Settings\UpdateHrZoneSettingsRequest;
 use App\Jobs\SyncGarminJob;
 use App\Models\GarminConnection;
 use App\Models\HrZoneSettings;
+use App\Services\Garmin\ConnectionHealth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,7 +26,7 @@ class GarminController extends Controller
 {
     use InteractsWithCurrentUser;
 
-    public function edit(Request $request): Response
+    public function edit(Request $request, ConnectionHealth $health): Response
     {
         $user = $this->currentUser($request);
         $connection = $user->garminConnection;
@@ -38,6 +39,9 @@ class GarminController extends Controller
                 'sync_status' => $connection->effectiveSyncStatus(),
                 'sync_error' => $connection->syncErrorMessage(),
                 'last_synced_at_diff' => $connection->last_synced_at?->diffForHumans(),
+                // The status column only records what Tempo last did. This is
+                // what the sidecar says right now.
+                'health' => $connection->isConnected() ? $health->for($connection) : null,
             ],
             'settings' => [
                 'max_hr' => $settings?->max_hr,
@@ -57,9 +61,11 @@ class GarminController extends Controller
         ]);
     }
 
-    public function connect(ConnectGarminRequest $request, ConnectGarminAction $action): RedirectResponse
+    public function connect(ConnectGarminRequest $request, ConnectGarminAction $action, ConnectionHealth $health): RedirectResponse
     {
         $connection = $this->connectionFor($request);
+        // A stale "expired" probe from before this attempt must not outlive it.
+        $health->forget($connection);
 
         try {
             $result = $action->handle($connection, $request->string('email')->value(), $request->string('password')->value());
@@ -82,9 +88,10 @@ class GarminController extends Controller
         return back()->with('status', 'Garmin account connected.');
     }
 
-    public function mfa(CompleteGarminMfaRequest $request, ConnectGarminAction $action): RedirectResponse
+    public function mfa(CompleteGarminMfaRequest $request, ConnectGarminAction $action, ConnectionHealth $health): RedirectResponse
     {
         $connection = $this->connectionFor($request);
+        $health->forget($connection);
 
         try {
             $action->completeMfa($connection, $request->string('login_token')->value(), $request->string('code')->value());

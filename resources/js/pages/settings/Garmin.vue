@@ -17,12 +17,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit as editGarmin } from '@/routes/garmin';
 
+type Health = 'healthy' | 'session_expired' | 'sidecar_unreachable';
+
 interface Connection {
     status: string;
     display_name: string | null;
     sync_status: string;
     sync_error: string | null;
     last_synced_at_diff: string | null;
+    health: Health | null;
 }
 
 interface Settings {
@@ -55,6 +58,17 @@ const page = usePage();
 const status = computed(() => page.props.status as string | undefined);
 const isConnected = computed(() => props.connection?.status === 'connected');
 const awaitingMfa = computed(() => !!props.login_token);
+
+const healthWarning = computed(() => {
+    switch (props.connection?.health) {
+        case 'session_expired':
+            return 'Garmin no longer accepts the stored session. Connect again to keep syncing.';
+        case 'sidecar_unreachable':
+            return 'The Garmin sync service is not responding, so nothing can sync right now.';
+        default:
+            return null;
+    }
+});
 </script>
 
 <template>
@@ -90,6 +104,12 @@ const awaitingMfa = computed(() => !!props.login_token);
             </CardHeader>
             <CardContent class="space-y-4">
                 <template v-if="isConnected">
+                    <p
+                        v-if="healthWarning"
+                        class="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                    >
+                        {{ healthWarning }}
+                    </p>
                     <div class="flex flex-wrap items-center gap-3 text-sm">
                         <Badge
                             :variant="
