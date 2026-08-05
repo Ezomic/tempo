@@ -8,6 +8,7 @@ import time
 import zipfile
 from contextlib import asynccontextmanager
 from datetime import date
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
@@ -149,6 +150,20 @@ class MfaBody(BaseModel):
     connection_id: str
     login_token: str
     code: str
+
+
+@app.get("/health")
+def health() -> dict[str, Any]:
+    # Deliberately unauthenticated: every other route needs the secret and most
+    # also need a connected account, which leaves nothing for systemd or the
+    # status app to probe. Safe because the service is bound to loopback, and
+    # because this answers only "am I up and can I still write tokens", never
+    # who is connected.
+    return {
+        "status": "ok",
+        "garminconnect": version("garminconnect"),
+        "token_store_writable": os.access(TOKENS_ROOT, os.W_OK),
+    }
 
 
 @app.post("/login")
