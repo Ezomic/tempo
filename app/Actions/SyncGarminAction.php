@@ -87,8 +87,7 @@ class SyncGarminAction
                 : $now->subDays(self::FIRST_SYNC_WELLNESS_DAYS);
             $this->syncWellness($connection, $wellnessStart->startOfDay(), $now->startOfDay());
 
-            $this->fitnessCurve->recompute($connection->user, $now);
-            $this->records->recompute($connection->user);
+            $this->recomputeCurves($connection);
 
             $connection->update([
                 'sync_status' => GarminConnection::SYNC_IDLE,
@@ -106,8 +105,38 @@ class SyncGarminAction
         }
     }
 
-    private function storeActivity(GarminConnection $connection, ActivitySummary $summary, HrZoneSettings $settings): void
+    /**
+     * Import an explicit historical range, independent of last_synced_at. The
+     * incremental window can only ever move forward, so without this there is no
+     * way to reach anything older than the first sync.
+     */
+    public function backfill(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $end): void
     {
+        if (! $connection->isConnected()) {
+            throw new RuntimeException('Garmin connection is not connected.');
+        }
+
+        $settings = $this->settingsFor($connection);
+
+        foreach ($this->client->activities($connection, $start, $end) as $summary) {
+            $this->storeActivity($connection, $summary, $settings, reuseArchive: true);
+        }
+
+        $this->syncWellness($connection, $start->startOfDay(), $end->startOfDay());
+    }
+
+    public function recomputeCurves(GarminConnection $connection): void
+    {
+        $this->fitnessCurve->recompute($connection->user, CarbonImmutable::now());
+        $this->records->recompute($connection->user);
+    }
+
+    private function storeActivity(
+        GarminConnection $connection,
+        ActivitySummary $summary,
+        HrZoneSettings $settings,
+        bool $reuseArchive = false,
+    ): void {
         if ($summary->externalId === '') {
             return;
         }
@@ -128,18 +157,33 @@ class SyncGarminAction
             'raw_summary' => $summary->raw,
         ];
 
-        $attributes += $this->archiveAndDerive(
-            $connection,
-            $summary->externalId,
-            $summary->sport,
-            $summary->distanceM,
-            $settings,
-        );
+        // A re-run over a range already imported must not pull every .fit down
+        // again, so an archive that is already on disk is left alone.
+        if (! ($reuseArchive && $this->hasArchive($connection, $summary->externalId))) {
+            $attributes += $this->archiveAndDerive(
+                $connection,
+                $summary->externalId,
+                $summary->sport,
+                $summary->distanceM,
+                $settings,
+            );
+        }
 
         Activity::query()->updateOrCreate(
             ['user_id' => $connection->user_id, 'external_id' => $summary->externalId],
             $attributes,
         );
+    }
+
+    private function hasArchive(GarminConnection $connection, string $externalId): bool
+    {
+        $activity = Activity::query()
+            ->where('user_id', $connection->user_id)
+            ->where('external_id', $externalId)
+            ->first();
+
+        return $activity?->fit_path !== null
+            && Storage::disk('local')->exists($activity->fit_path);
     }
 
     /**
@@ -237,12 +281,15 @@ class SyncGarminAction
         return $path;
     }
 
-    private function syncWellness(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $today): void
+    private function syncWellness(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $end): void
     {
         $attempted = 0;
         $skipped = [];
+        // Only the current day is still changing; every earlier day is settled
+        // once captured, whether this is an incremental run or a backfill.
+        $today = CarbonImmutable::now()->startOfDay();
 
-        for ($date = $start; $date <= $today; $date = $date->addDay()) {
+        for ($date = $start; $date <= $end; $date = $date->addDay()) {
             // whereDate compares only the date part, so it matches the stored
             // datetime regardless of its time component; a bare-string equality
             // match on the cast column silently misses and duplicates the row.
