@@ -11,20 +11,16 @@ use App\Models\Activity;
 use App\Models\GarminConnection;
 use App\Models\HrZoneSettings;
 use App\Models\WellnessDay;
+use App\Services\Garmin\ActivityMetrics;
 use App\Services\Garmin\FitParser;
 use App\Services\Garmin\GarminClient;
 use App\Services\Garmin\StreamBuilder;
-use App\Services\Garmin\TrimpCalculator;
-use App\Services\Routing\RouteSignature;
-use App\Services\Training\AerobicDecouplingAnalyzer;
-use App\Services\Training\CardiacCostAnalyzer;
-use App\Services\Training\EfficiencyFactorAnalyzer;
-use App\Services\Training\EffortAnalyzer;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\PerformanceRecordService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -42,18 +38,19 @@ class SyncGarminAction
      */
     private const WELLNESS_LOOKBACK_DAYS = 14;
 
+    /**
+     * How many previously failed archives one run tries to recover, so a long
+     * backlog does not push the sync past its timeout.
+     */
+    private const ARCHIVE_REPAIRS_PER_RUN = 25;
+
     public function __construct(
         private readonly GarminClient $client,
         private readonly FitParser $fitParser,
-        private readonly TrimpCalculator $trimp,
         private readonly StreamBuilder $streamBuilder,
-        private readonly EffortAnalyzer $effort,
+        private readonly ActivityMetrics $metrics,
         private readonly FitnessCurveService $fitnessCurve,
         private readonly PerformanceRecordService $records,
-        private readonly AerobicDecouplingAnalyzer $decoupling,
-        private readonly EfficiencyFactorAnalyzer $efficiency,
-        private readonly CardiacCostAnalyzer $cardiac,
-        private readonly RouteSignature $routeSignature,
     ) {}
 
     public function handle(GarminConnection $connection): void
@@ -80,6 +77,10 @@ class SyncGarminAction
             foreach ($this->client->activities($connection, $activityStart, $now) as $summary) {
                 $this->storeActivity($connection, $summary, $settings);
             }
+
+            // Activities whose archive failed earlier fall outside the window
+            // above forever, so they get their own pass.
+            $this->repairMissingArchives($connection, $settings);
 
             $wellnessStart = $lastSynced !== null
                 ? $lastSynced->subDay()->min($now->subDays(self::WELLNESS_LOOKBACK_DAYS))
@@ -127,43 +128,13 @@ class SyncGarminAction
             'raw_summary' => $summary->raw,
         ];
 
-        $fit = $this->archiveFit($connection, $summary->externalId);
-        if ($fit !== null) {
-            $parsed = $this->fitParser->parseData($fit['bytes']);
-            $attributes['fit_path'] = $fit['path'];
-            if ($parsed->hasHeartRate()) {
-                $attributes['trimp'] = $this->trimp->trimp($parsed->hrSamples, $settings);
-                $attributes['hr_zone_seconds'] = $this->trimp->zoneSeconds($parsed->hrSamples, $settings);
-            }
-
-            if ($parsed->speedSamples !== []) {
-                if ($summary->sport === Sport::Run) {
-                    $attributes['best_efforts'] = $this->effort->bestEfforts($parsed->speedSamples);
-                }
-                $attributes['mean_max'] = $this->effort->meanMax($parsed->speedSamples);
-            }
-
-            if ($parsed->laps !== []) {
-                $attributes['laps'] = $parsed->laps;
-            }
-
-            if ($parsed->hasHeartRate() && $parsed->speedSamples !== []) {
-                $attributes['decoupling'] = $this->decoupling->analyze($parsed->hrSamples, $parsed->speedSamples);
-                $attributes['efficiency_factor'] = $this->efficiency->analyze($parsed->hrSamples, $parsed->speedSamples);
-                $cardiac = $this->cardiac->analyze($parsed->hrSamples, $parsed->speedSamples);
-                $attributes['cardiac_cost'] = $cardiac['cardiac_cost'] ?? null;
-                $attributes['hr_drift'] = $cardiac['hr_drift'] ?? null;
-            }
-
-            if ($parsed->positions !== []) {
-                $attributes['route_key'] = $this->routeSignature->forPositions($parsed->positions, $summary->distanceM);
-            }
-
-            $streamsPath = $this->archiveStreams($connection, $summary->externalId, $parsed);
-            if ($streamsPath !== null) {
-                $attributes['streams_path'] = $streamsPath;
-            }
-        }
+        $attributes += $this->archiveAndDerive(
+            $connection,
+            $summary->externalId,
+            $summary->sport,
+            $summary->distanceM,
+            $settings,
+        );
 
         Activity::query()->updateOrCreate(
             ['user_id' => $connection->user_id, 'external_id' => $summary->externalId],
@@ -172,24 +143,86 @@ class SyncGarminAction
     }
 
     /**
-     * @return array{bytes: string, path: string}|null
+     * Re-download the archives that failed on an earlier run. Without this the
+     * activity keeps a null trimp forever: it is outside every later sync window,
+     * and ReprocessActivitiesAction only reads archives that are already on disk.
      */
-    private function archiveFit(GarminConnection $connection, string $externalId): ?array
+    private function repairMissingArchives(GarminConnection $connection, HrZoneSettings $settings): void
     {
+        $broken = Activity::query()
+            ->where('user_id', $connection->user_id)
+            ->whereNull('fit_path')
+            ->whereNotNull('fit_failed_at')
+            ->orderByDesc('started_at')
+            ->limit(self::ARCHIVE_REPAIRS_PER_RUN)
+            ->get();
+
+        foreach ($broken as $activity) {
+            $activity->forceFill($this->archiveAndDerive(
+                $connection,
+                $activity->external_id,
+                $activity->sport,
+                $activity->distance_m,
+                $settings,
+            ))->save();
+        }
+    }
+
+    /**
+     * Download and archive the .fit, then derive everything it yields. Returns
+     * the attributes to write, including the outcome of the download itself so
+     * a failure is recorded rather than silently dropped.
+     *
+     * @return array<string, mixed>
+     */
+    private function archiveAndDerive(
+        GarminConnection $connection,
+        string $externalId,
+        Sport $sport,
+        ?float $distanceM,
+        HrZoneSettings $settings,
+    ): array {
         try {
             $bytes = $this->client->downloadFit($connection, $externalId);
-        } catch (Throwable) {
-            return null;
+        } catch (Throwable $e) {
+            return $this->archiveFailure($connection, $externalId, $e->getMessage());
         }
 
         if ($bytes === '') {
-            return null;
+            return $this->archiveFailure($connection, $externalId, 'Garmin returned an empty .fit file.');
         }
 
         $path = "garmin/fit/{$connection->user_id}/{$externalId}.fit";
         Storage::disk('local')->put($path, $bytes);
 
-        return ['bytes' => $bytes, 'path' => $path];
+        $parsed = $this->fitParser->parseData($bytes);
+
+        $attributes = $this->metrics->derive($parsed, $sport, $distanceM, $settings) + [
+            'fit_path' => $path,
+            'fit_failed_at' => null,
+            'fit_error' => null,
+        ];
+
+        $streamsPath = $this->archiveStreams($connection, $externalId, $parsed);
+        if ($streamsPath !== null) {
+            $attributes['streams_path'] = $streamsPath;
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function archiveFailure(GarminConnection $connection, string $externalId, string $reason): array
+    {
+        Log::warning('Garmin .fit download failed', [
+            'user_id' => $connection->user_id,
+            'external_id' => $externalId,
+            'reason' => $reason,
+        ]);
+
+        return ['fit_failed_at' => now(), 'fit_error' => Str::limit($reason, 250)];
     }
 
     private function archiveStreams(GarminConnection $connection, string $externalId, ParsedActivity $parsed): ?string

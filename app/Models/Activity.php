@@ -35,6 +35,8 @@ use Illuminate\Support\Carbon;
  * @property list<array{duration_s: int, distance_m: float, avg_speed_mps: float, avg_hr: int|null}>|null $laps
  * @property string|null $route_key
  * @property string|null $fit_path
+ * @property Carbon|null $fit_failed_at
+ * @property string|null $fit_error
  * @property string|null $streams_path
  * @property array<string, mixed>|null $raw_summary
  * @property Carbon|null $created_at
@@ -66,6 +68,8 @@ use Illuminate\Support\Carbon;
     'laps',
     'route_key',
     'fit_path',
+    'fit_failed_at',
+    'fit_error',
     'streams_path',
     'raw_summary',
 ])]
@@ -100,6 +104,7 @@ class Activity extends Model
             'mean_max' => 'array',
             'laps' => 'array',
             'raw_summary' => 'array',
+            'fit_failed_at' => 'datetime',
         ];
     }
 }
