@@ -34,8 +34,8 @@ class GarminController extends Controller
             'connection' => $connection === null ? null : [
                 'status' => $connection->status,
                 'display_name' => $connection->garmin_display_name,
-                'sync_status' => $connection->sync_status,
-                'sync_error' => $connection->sync_error,
+                'sync_status' => $connection->effectiveSyncStatus(),
+                'sync_error' => $connection->syncErrorMessage(),
                 'last_synced_at_diff' => $connection->last_synced_at?->diffForHumans(),
             ],
             'settings' => [
@@ -105,6 +105,12 @@ class GarminController extends Controller
         $connection = $this->currentUser($request)->garminConnection;
 
         abort_if($connection === null || ! $connection->isConnected(), 422);
+
+        // WithoutOverlapping would drop the duplicate anyway; saying so beats
+        // telling the athlete a second sync started when it did not.
+        if ($connection->effectiveSyncStatus() === GarminConnection::SYNC_SYNCING) {
+            return back()->with('status', 'A sync is already running.');
+        }
 
         SyncGarminJob::dispatch($connection);
 

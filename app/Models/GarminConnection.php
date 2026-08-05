@@ -41,9 +41,36 @@ class GarminConnection extends Model
 
     public const SYNC_ERROR = 'error';
 
+    /**
+     * A run that has not reported back in this long was killed rather than
+     * finished: SyncGarminJob times out at 1800s, and the rest is slack for the
+     * job sitting in the queue. Without this, a killed worker leaves the row on
+     * "syncing" forever, since only the job itself ever writes that field.
+     */
+    public const SYNC_STALE_AFTER_MINUTES = 35;
+
     public function isConnected(): bool
     {
         return $this->status === self::STATUS_CONNECTED;
+    }
+
+    public function syncIsStale(): bool
+    {
+        return $this->sync_status === self::SYNC_SYNCING
+            && $this->sync_status_since !== null
+            && $this->sync_status_since->lessThan(now()->subMinutes(self::SYNC_STALE_AFTER_MINUTES));
+    }
+
+    public function effectiveSyncStatus(): string
+    {
+        return $this->syncIsStale() ? self::SYNC_ERROR : $this->sync_status;
+    }
+
+    public function syncErrorMessage(): ?string
+    {
+        return $this->syncIsStale()
+            ? 'The last sync stopped before it finished. Start it again.'
+            : $this->sync_error;
     }
 
     /**
