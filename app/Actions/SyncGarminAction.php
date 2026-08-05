@@ -23,6 +23,7 @@ use App\Services\Training\EffortAnalyzer;
 use App\Services\Training\FitnessCurveService;
 use App\Services\Training\PerformanceRecordService;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
@@ -32,6 +33,14 @@ class SyncGarminAction
     private const FIRST_SYNC_ACTIVITY_DAYS = 90;
 
     private const FIRST_SYNC_WELLNESS_DAYS = 30;
+
+    /**
+     * Every incremental run reaches this far back regardless of last_synced_at.
+     * Days already captured are skipped without a call, so the only cost is a
+     * cheap query, and it is what lets a day that failed transiently be picked
+     * up by a later run instead of being lost.
+     */
+    private const WELLNESS_LOOKBACK_DAYS = 14;
 
     public function __construct(
         private readonly GarminClient $client,
@@ -72,7 +81,9 @@ class SyncGarminAction
                 $this->storeActivity($connection, $summary, $settings);
             }
 
-            $wellnessStart = $lastSynced?->subDay() ?? $now->subDays(self::FIRST_SYNC_WELLNESS_DAYS);
+            $wellnessStart = $lastSynced !== null
+                ? $lastSynced->subDay()->min($now->subDays(self::WELLNESS_LOOKBACK_DAYS))
+                : $now->subDays(self::FIRST_SYNC_WELLNESS_DAYS);
             $this->syncWellness($connection, $wellnessStart->startOfDay(), $now->startOfDay());
 
             $this->fitnessCurve->recompute($connection->user, $now);
@@ -195,6 +206,9 @@ class SyncGarminAction
 
     private function syncWellness(GarminConnection $connection, CarbonImmutable $start, CarbonImmutable $today): void
     {
+        $attempted = 0;
+        $skipped = [];
+
         for ($date = $start; $date <= $today; $date = $date->addDay()) {
             // whereDate compares only the date part, so it matches the stored
             // datetime regardless of its time component; a bare-string equality
@@ -209,24 +223,49 @@ class SyncGarminAction
                 continue;
             }
 
-            $snapshot = $this->client->wellness($connection, $date);
+            $attempted++;
 
-            ($existing ?? new WellnessDay)->forceFill([
-                'user_id' => $connection->user_id,
-                'date' => $date->toDateString(),
-                'sleep_score' => $snapshot->sleepScore,
-                'sleep_duration_s' => $snapshot->sleepDurationS,
-                'hrv_status' => $snapshot->hrvStatus,
-                'hrv_last_night_ms' => $snapshot->hrvLastNightMs,
-                'hrv_baseline_low' => $snapshot->hrvBaselineLow,
-                'hrv_baseline_high' => $snapshot->hrvBaselineHigh,
-                'body_battery_high' => $snapshot->bodyBatteryHigh,
-                'body_battery_low' => $snapshot->bodyBatteryLow,
-                'resting_hr' => $snapshot->restingHr,
-                'stress_avg' => $snapshot->stressAvg,
-                'raw' => $snapshot->raw,
-            ])->save();
+            try {
+                $this->storeWellnessDay($connection, $existing, $date);
+            } catch (Throwable $e) {
+                // Rate limiting and a briefly unreachable Garmin are exactly the
+                // failures that must not cost the whole run. The lookback window
+                // brings this date back around on a later sync.
+                $skipped[] = $date->toDateString();
+                Log::warning('Wellness day skipped during Garmin sync', [
+                    'user_id' => $connection->user_id,
+                    'date' => $date->toDateString(),
+                    'reason' => $e->getMessage(),
+                ]);
+            }
         }
+
+        // Every single day failing is not a transient blip, it is the sidecar or
+        // the session being down, and that has to reach the athlete.
+        if ($attempted > 0 && count($skipped) === $attempted) {
+            throw new RuntimeException('Could not fetch any wellness data from Garmin.');
+        }
+    }
+
+    private function storeWellnessDay(GarminConnection $connection, ?WellnessDay $existing, CarbonImmutable $date): void
+    {
+        $snapshot = $this->client->wellness($connection, $date);
+
+        ($existing ?? new WellnessDay)->forceFill([
+            'user_id' => $connection->user_id,
+            'date' => $date->toDateString(),
+            'sleep_score' => $snapshot->sleepScore,
+            'sleep_duration_s' => $snapshot->sleepDurationS,
+            'hrv_status' => $snapshot->hrvStatus,
+            'hrv_last_night_ms' => $snapshot->hrvLastNightMs,
+            'hrv_baseline_low' => $snapshot->hrvBaselineLow,
+            'hrv_baseline_high' => $snapshot->hrvBaselineHigh,
+            'body_battery_high' => $snapshot->bodyBatteryHigh,
+            'body_battery_low' => $snapshot->bodyBatteryLow,
+            'resting_hr' => $snapshot->restingHr,
+            'stress_avg' => $snapshot->stressAvg,
+            'raw' => $snapshot->raw,
+        ])->save();
     }
 
     private function settingsFor(GarminConnection $connection): HrZoneSettings
