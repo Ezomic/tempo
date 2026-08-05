@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Http;
 
 final readonly class SidecarGarminClient implements GarminClient
 {
+    /** Seconds a health probe may block a page load for. */
+    private const STATUS_TIMEOUT = 5;
+
     public function __construct(
         private string $baseUrl,
         private string $secret,
@@ -27,7 +30,7 @@ final readonly class SidecarGarminClient implements GarminClient
 
     public function login(GarminConnection $connection, string $email, string $password): LoginResult
     {
-        $response = $this->authRequest(fn (): Response => $this->request()->post('/login', [
+        $response = $this->translated(fn (): Response => $this->request()->post('/login', [
             'connection_id' => (string) $connection->id,
             'email' => $email,
             'password' => $password,
@@ -38,7 +41,7 @@ final readonly class SidecarGarminClient implements GarminClient
 
     public function resumeLoginWithMfa(GarminConnection $connection, string $loginToken, string $code): LoginResult
     {
-        $response = $this->authRequest(fn (): Response => $this->request()->post('/login/mfa', [
+        $response = $this->translated(fn (): Response => $this->request()->post('/login/mfa', [
             'connection_id' => (string) $connection->id,
             'login_token' => $loginToken,
             'code' => $code,
@@ -49,9 +52,11 @@ final readonly class SidecarGarminClient implements GarminClient
 
     public function status(GarminConnection $connection): ConnectionStatus
     {
-        $response = $this->request()
-            ->get('/status', ['connection_id' => (string) $connection->id])
-            ->throw();
+        // A page load waits on this, so it gets its own short timeout rather
+        // than the sync-sized default.
+        $response = $this->translated(fn (): Response => $this->request()
+            ->timeout(self::STATUS_TIMEOUT)
+            ->get('/status', ['connection_id' => (string) $connection->id]));
 
         return ConnectionStatus::fromSidecar(Payload::assoc($response->json()));
     }
@@ -120,12 +125,12 @@ final readonly class SidecarGarminClient implements GarminClient
     }
 
     /**
-     * Run a sign-in request, translating transport and sidecar failures into a
-     * typed GarminConnectException so callers can show a specific message.
+     * Run a request, translating transport and sidecar failures into a typed
+     * GarminConnectException so callers can show a specific message.
      *
      * @param  callable(): Response  $request
      */
-    private function authRequest(callable $request): Response
+    private function translated(callable $request): Response
     {
         try {
             $response = $request();
