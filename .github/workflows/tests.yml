@@ -61,7 +61,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           # Matches the droplet, so a garminconnect bump that drops 3.10 or
           # changes its import surface fails here rather than in production.
