@@ -1,5 +1,7 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
-# 0.3.2 is the newest release that installs on the prod droplet's Python 3.10;
-# 0.3.3+ require Python >=3.12. 0.3.2 already ships the typed workout builder.
+# Pinned exactly so the venv app-deploy builds per release cannot drift from the one
+# tested in CI. garminconnect wraps an API Garmin does not document, so a bump is a
+# behaviour change against a live service and belongs in its own ticket, not in a
+# dependency refresh. 0.3.2 ships the typed workout builder this app uses.
 garminconnect==0.3.2
