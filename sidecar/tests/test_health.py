@@ -16,8 +16,8 @@ def test_answers_without_the_secret(client):
 def test_reports_the_garminconnect_version_in_use(client):
     body = client.get("/health").json()
 
-    # The pinned version is the reason the droplet can stay on Python 3.10, so
-    # knowing which one is actually loaded is the point of exposing it.
+    # The venv is rebuilt per release, so knowing which version actually loaded
+    # is the point of exposing it: that is how a drifted release is spotted.
     assert body["garminconnect"].count(".") == 2
 
 
