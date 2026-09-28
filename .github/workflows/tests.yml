@@ -61,7 +61,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           # Matches the production box (Ubuntu 26.04, Python 3.14), so a
           # garminconnect bump that changes its import surface fails here rather
