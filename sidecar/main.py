@@ -106,7 +106,7 @@ def load_client(connection_id: str) -> Garmin:
 
 def dump_tokens(client: Garmin, path: Path) -> None:
     # The garth client is exposed as `.garth` in newer garminconnect and `.client`
-    # in 0.3.x. Support both so the same file runs in dev and on the droplet.
+    # in 0.3.x. Support both so the same file keeps working across a version bump.
     garth = getattr(client, "garth", None) or getattr(client, "client", None)
     if garth is None:
         raise RuntimeError("Unable to locate garth client for token dump")
